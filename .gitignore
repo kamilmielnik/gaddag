@@ -1,0 +1,4 @@
+build/
+bench/dictionaries/
+coverage/
+node_modules/

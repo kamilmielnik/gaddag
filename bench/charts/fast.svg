@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 400" font-family="-apple-system, Segoe UI, Roboto, sans-serif" font-size="13">
+<rect width="920" height="400" fill="white"/>
+<line x1="84" y1="350" x2="720" y2="350" stroke="#666" stroke-width="1"/>
+<text x="76" y="354" text-anchor="end" fill="#555">0</text>
+<line x1="84" y1="284.8" x2="720" y2="284.8" stroke="#eee" stroke-width="1"/>
+<text x="76" y="288.8" text-anchor="end" fill="#555">10M</text>
+<line x1="84" y1="219.6" x2="720" y2="219.6" stroke="#eee" stroke-width="1"/>
+<text x="76" y="223.6" text-anchor="end" fill="#555">20M</text>
+<line x1="84" y1="154.4" x2="720" y2="154.4" stroke="#eee" stroke-width="1"/>
+<text x="76" y="158.4" text-anchor="end" fill="#555">30M</text>
+<line x1="84" y1="89.19999999999999" x2="720" y2="89.19999999999999" stroke="#eee" stroke-width="1"/>
+<text x="76" y="93.19999999999999" text-anchor="end" fill="#555">40M</text>
+<line x1="84" y1="24" x2="720" y2="24" stroke="#eee" stroke-width="1"/>
+<text x="76" y="28" text-anchor="end" fill="#555">50M</text>
+<text x="22" y="187" text-anchor="middle" fill="#555" transform="rotate(-90 22 187)">ops / sec</text>
+<rect x="96.0" y="215.7" width="32.4" height="134.3" fill="#3b82f6"><title>🇺🇸 en-US · has (hit): 20.59M ops/sec</title></rect>
+<rect x="130.4" y="257.9" width="32.4" height="92.1" fill="#10b981"><title>🇬🇧 en-GB · has (hit): 14.13M ops/sec</title></rect>
+<rect x="164.8" y="292.8" width="32.4" height="57.2" fill="#f59e0b"><title>🇵🇱 pl-PL · has (hit): 8.78M ops/sec</title></rect>
+<text x="147.6" y="376" text-anchor="middle" fill="#111" font-weight="600" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">has (hit)</text>
+<rect x="223.2" y="230.2" width="32.4" height="119.8" fill="#3b82f6"><title>🇺🇸 en-US · has (miss): 18.38M ops/sec</title></rect>
+<rect x="257.6" y="259.2" width="32.4" height="90.8" fill="#10b981"><title>🇬🇧 en-GB · has (miss): 13.92M ops/sec</title></rect>
+<rect x="292.0" y="296.4" width="32.4" height="53.6" fill="#f59e0b"><title>🇵🇱 pl-PL · has (miss): 8.23M ops/sec</title></rect>
+<text x="274.8" y="376" text-anchor="middle" fill="#111" font-weight="600" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">has (miss)</text>
+<rect x="350.4" y="226.9" width="32.4" height="123.1" fill="#3b82f6"><title>🇺🇸 en-US · hasPrefix (hit): 18.88M ops/sec</title></rect>
+<rect x="384.8" y="211.0" width="32.4" height="139.0" fill="#10b981"><title>🇬🇧 en-GB · hasPrefix (hit): 21.31M ops/sec</title></rect>
+<rect x="419.2" y="211.1" width="32.4" height="138.9" fill="#f59e0b"><title>🇵🇱 pl-PL · hasPrefix (hit): 21.30M ops/sec</title></rect>
+<text x="402" y="376" text-anchor="middle" fill="#111" font-weight="600" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">hasPrefix (hit)</text>
+<rect x="477.6" y="232.8" width="32.4" height="117.2" fill="#3b82f6"><title>🇺🇸 en-US · hasPrefix (miss): 17.98M ops/sec</title></rect>
+<rect x="512.0" y="258.9" width="32.4" height="91.1" fill="#10b981"><title>🇬🇧 en-GB · hasPrefix (miss): 13.98M ops/sec</title></rect>
+<rect x="546.4" y="292.5" width="32.4" height="57.5" fill="#f59e0b"><title>🇵🇱 pl-PL · hasPrefix (miss): 8.82M ops/sec</title></rect>
+<text x="529.2" y="376" text-anchor="middle" fill="#111" font-weight="600" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">hasPrefix (miss)</text>
+<rect x="604.8" y="87.6" width="32.4" height="262.4" fill="#3b82f6"><title>🇺🇸 en-US · getArc: 40.24M ops/sec</title></rect>
+<rect x="639.2" y="107.0" width="32.4" height="243.0" fill="#10b981"><title>🇬🇧 en-GB · getArc: 37.28M ops/sec</title></rect>
+<rect x="673.6" y="193.6" width="32.4" height="156.4" fill="#f59e0b"><title>🇵🇱 pl-PL · getArc: 23.99M ops/sec</title></rect>
+<text x="656.4" y="376" text-anchor="middle" fill="#111" font-weight="600" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">getArc</text>
+<rect x="744" y="24" width="14" height="14" rx="2" fill="#3b82f6"/>
+<text x="766" y="35" fill="#222" font-weight="600">🇺🇸 en-US</text>
+<text x="766" y="51" fill="#666" font-size="11">TWL06 · 178,690 words</text>
+<rect x="744" y="68" width="14" height="14" rx="2" fill="#10b981"/>
+<text x="766" y="79" fill="#222" font-weight="600">🇬🇧 en-GB</text>
+<text x="766" y="95" fill="#666" font-size="11">SOWPODS · 267,751 words</text>
+<rect x="744" y="112" width="14" height="14" rx="2" fill="#f59e0b"/>
+<text x="766" y="123" fill="#222" font-weight="600">🇵🇱 pl-PL</text>
+<text x="766" y="139" fill="#666" font-size="11">SJP.PL · 3,229,855 words</text>
+</svg>

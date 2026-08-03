@@ -1,0 +1,18 @@
+name: Format
+
+on: [push]
+
+jobs:
+  oxfmt:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - run: bun run format
+        env:
+          CI: true

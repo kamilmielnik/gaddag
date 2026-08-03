@@ -1,0 +1,7 @@
+{
+  "entryPoints": ["./src"],
+  "gitRevision": "master",
+  "out": "docs",
+  "plugin": ["typedoc-plugin-markdown"],
+  "readme": "none"
+}
