@@ -36,8 +36,10 @@ A GADDAG is a minimized automaton that, for every word `w` and every split point
   - [Arc API](#arc-api)
 - [Limits](#limits)
 - [Examples](#examples)
+  - [Load a dictionary from a file](#load-a-dictionary-from-a-file)
   - [Serialize a GADDAG to a file](#serialize-a-gaddag-to-a-file)
   - [Load a serialized GADDAG from a file](#load-a-serialized-gaddag-from-a-file)
+  - [Find all words with a given prefix](#find-all-words-with-a-given-prefix)
 - [Serialization and size](#serialization-and-size)
 - [Performance](#performance)
 
@@ -124,8 +126,24 @@ Empty words are skipped. Duplicated words and unsorted input are fine — the sa
 
 # Examples
 
+- [Load a dictionary from a file](#load-a-dictionary-from-a-file)
 - [Serialize a GADDAG to a file](#serialize-a-gaddag-to-a-file)
 - [Load a serialized GADDAG from a file](#load-a-serialized-gaddag-from-a-file)
+- [Find all words with a given prefix](#find-all-words-with-a-given-prefix)
+
+## Load a dictionary from a file
+
+```TypeScript
+import { readFile } from 'node:fs/promises';
+import { buildGaddag } from '@kamilmielnik/gaddag';
+
+const file = await readFile('dictionary.txt', 'utf-8');
+const gaddag = buildGaddag(file.split('\n').filter(Boolean));
+
+gaddag.has('solver');     // is "solver" in the dictionary?
+gaddag.hasPrefix('scra'); // does any word start with "scra"?
+gaddag.arcsCount;         // number of arcs in the automaton
+```
 
 ## Serialize a GADDAG to a file
 
@@ -147,11 +165,71 @@ const buffer = await readFile('dictionary.gaddag');
 const gaddag = Gaddag.deserialize(new Uint8Array(buffer.buffer, buffer.byteOffset, buffer.byteLength));
 ```
 
+## Find all words with a given prefix
+
+A GADDAG stores `reverse(prefix) + ◇ + suffix` paths, so all words starting with a prefix live behind a single separator arc: follow the reversed prefix, cross `◇`, and collect every suffix.
+
+```TypeScript
+import { buildGaddag, Gaddag, LAST_ARC_FLAG, LETTER_MASK, SEPARATOR } from '@kamilmielnik/gaddag';
+
+const findWordsWithPrefix = (gaddag: Gaddag, prefix: string): string[] => {
+  if (prefix.length === 0 || !gaddag.hasPrefix(prefix)) {
+    return [];
+  }
+
+  let ref = gaddag.rootRef;
+
+  for (let index = prefix.length - 1; index >= 0; --index) {
+    ref = gaddag.getArc(ref, gaddag.getLetter(prefix.charCodeAt(index)));
+  }
+
+  const words: string[] = [];
+
+  if ((ref & 1) === 1) {
+    words.push(prefix);
+  }
+
+  collectWords(gaddag, gaddag.getArc(ref, SEPARATOR), prefix, words);
+  return words;
+};
+
+const collectWords = (gaddag: Gaddag, ref: number, word: string, words: string[]): void => {
+  let index = ref >>> 1;
+
+  if (index === 0) {
+    return;
+  }
+
+  for (;;) {
+    const label = gaddag.arcLabels[index];
+    const target = gaddag.arcTargets[index];
+    const next = word + String.fromCharCode(gaddag.charCodes[(label & LETTER_MASK) - 1]);
+
+    if ((target & 1) === 1) {
+      words.push(next);
+    }
+
+    collectWords(gaddag, target, next, words);
+
+    if (label & LAST_ARC_FLAG) {
+      return;
+    }
+
+    ++index;
+  }
+};
+
+const gaddag = buildGaddag(['scrabble', 'scrap', 'solver']);
+findWordsWithPrefix(gaddag, 'scra'); // ['scrabble', 'scrap']
+```
+
 # Serialization and size
 
 <!-- SIZE:summary:start -->
 A GADDAG trades space for lookup speed: for SJP.PL (pl-PL) the serialized automaton is 43.69% smaller than the raw word list, and it compresses well — with [7-Zip](https://en.wikipedia.org/wiki/7z) at ultra compression level it takes just 20.64% of the raw word list size.
 <!-- SIZE:summary:end -->
+
+For serialization only, if space is preferred over lookup speed, use [@kamilmielnik/trie](https://github.com/kamilmielnik/trie) instead.
 
 <!-- SIZE:start -->
 | Language | 🇺🇸 en-US | 🇬🇧 en-GB | 🇵🇱 pl-PL |
