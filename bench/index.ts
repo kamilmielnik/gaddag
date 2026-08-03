@@ -28,7 +28,7 @@ const SIZE_MARKER = 'SIZE';
 const FAST_OPERATIONS = ['has (hit)', 'has (miss)', 'hasPrefix (hit)', 'hasPrefix (miss)', 'getArc'];
 const BUILD_OPERATIONS = ['Gaddag.fromArray'];
 const SERIALIZE_OPERATIONS = ['serialize'];
-const DESERIALIZE_OPERATIONS = ['deserialize'];
+const DESERIALIZE_OPERATIONS = ['Gaddag.deserialize'];
 
 const SOURCES: DictionarySource[] = [
   {
@@ -107,7 +107,7 @@ const main = async () => {
   let updated = replaceBetween(original, FAST_MARKER, `![Fast operations chart](${CHARTS_URL_BASE}/fast.svg)`);
   updated = replaceBetween(updated, BUILD_MARKER, `![Gaddag.fromArray chart](${CHARTS_URL_BASE}/fromArray.svg)`);
   updated = replaceBetween(updated, SERIALIZE_MARKER, `![Serialize chart](${CHARTS_URL_BASE}/serialize.svg)`);
-  updated = replaceBetween(updated, DESERIALIZE_MARKER, `![Deserialize chart](${CHARTS_URL_BASE}/deserialize.svg)`);
+  updated = replaceBetween(updated, DESERIALIZE_MARKER, `![Gaddag.deserialize chart](${CHARTS_URL_BASE}/deserialize.svg)`);
   updated = replaceBetween(updated, SIZE_MARKER, sizeTable);
   updated = replaceBetween(updated, 'SIZE:summary', sizeSummary);
 
@@ -225,7 +225,7 @@ const runSlow = async (dict: Dictionary): Promise<Map<string, number>> => {
     .add('serialize', () => {
       dict.gaddag.serialize();
     })
-    .add('deserialize', () => {
+    .add('Gaddag.deserialize', () => {
       Gaddag.deserialize(dict.serialized);
     });
   await serializationBench.run();

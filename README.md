@@ -268,5 +268,5 @@ Benchmarks are produced by [`bench/index.ts`](https://github.com/kamilmielnik/ga
 <!-- BENCH:serialize:end -->
 
 <!-- BENCH:deserialize:start -->
-![Deserialize chart](https://raw.githubusercontent.com/kamilmielnik/gaddag/master/bench/charts/deserialize.svg)
+![Gaddag.deserialize chart](https://raw.githubusercontent.com/kamilmielnik/gaddag/master/bench/charts/deserialize.svg)
 <!-- BENCH:deserialize:end -->
