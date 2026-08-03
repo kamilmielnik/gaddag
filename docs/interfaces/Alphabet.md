@@ -6,7 +6,7 @@
 
 # Interface: Alphabet
 
-Defined in: types.ts:2
+Defined in: [types.ts:2](https://github.com/kamilmielnik/gaddag/blob/master/src/types.ts#L2)
 
 Letters of a word list, indexed 1..63 in ascending code-point order (0 is the separator).
 
@@ -16,7 +16,7 @@ Letters of a word list, indexed 1..63 in ascending code-point order (0 is the se
 
 > **charCodes**: `Int32Array`
 
-Defined in: types.ts:3
+Defined in: [types.ts:3](https://github.com/kamilmielnik/gaddag/blob/master/src/types.ts#L3)
 
 ***
 
@@ -24,4 +24,4 @@ Defined in: types.ts:3
 
 > **letterByCharCode**: `Map`\<`number`, `number`\>
 
-Defined in: types.ts:4
+Defined in: [types.ts:4](https://github.com/kamilmielnik/gaddag/blob/master/src/types.ts#L4)

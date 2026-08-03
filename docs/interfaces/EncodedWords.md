@@ -6,7 +6,7 @@
 
 # Interface: EncodedWords
 
-Defined in: types.ts:8
+Defined in: [types.ts:8](https://github.com/kamilmielnik/gaddag/blob/master/src/types.ts#L8)
 
 A word list flattened into letter indices: word `i` spans `wordBytes[wordOffsets[i]..wordOffsets[i + 1])`.
 
@@ -16,7 +16,7 @@ A word list flattened into letter indices: word `i` spans `wordBytes[wordOffsets
 
 > **itemsCount**: `number`
 
-Defined in: types.ts:9
+Defined in: [types.ts:9](https://github.com/kamilmielnik/gaddag/blob/master/src/types.ts#L9)
 
 ***
 
@@ -24,7 +24,7 @@ Defined in: types.ts:9
 
 > **wordBytes**: `Uint8Array`
 
-Defined in: types.ts:10
+Defined in: [types.ts:10](https://github.com/kamilmielnik/gaddag/blob/master/src/types.ts#L10)
 
 ***
 
@@ -32,7 +32,7 @@ Defined in: types.ts:10
 
 > **wordOffsets**: `Int32Array`
 
-Defined in: types.ts:11
+Defined in: [types.ts:11](https://github.com/kamilmielnik/gaddag/blob/master/src/types.ts#L11)
 
 ***
 
@@ -40,4 +40,4 @@ Defined in: types.ts:11
 
 > **wordsCount**: `number`
 
-Defined in: types.ts:12
+Defined in: [types.ts:12](https://github.com/kamilmielnik/gaddag/blob/master/src/types.ts#L12)

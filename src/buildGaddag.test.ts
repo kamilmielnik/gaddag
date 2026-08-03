@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 
-import { buildGaddag } from './buildGaddag.ts';
-import { MAX_WORD_LENGTH } from './constants.ts';
+import { MAX_WORD_LENGTH, MAX_WORDS } from './constants.ts';
+import { Gaddag } from './Gaddag.ts';
 
 const MULBERRY32_INCREMENT = 0x6d2b79f5;
 const UINT32_RANGE = 2 ** 32;
@@ -31,9 +31,9 @@ const createRandomWordGenerator = (seed: number, letters: string, maxLength: num
   };
 };
 
-describe('buildGaddag', () => {
+describe('Gaddag.fromArray', () => {
   it('handles duplicated and unsorted input', () => {
-    const gaddag = buildGaddag(['zebra', 'ant', 'zebra', 'ant', 'bee']);
+    const gaddag = Gaddag.fromArray(['zebra', 'ant', 'zebra', 'ant', 'bee']);
 
     expect(gaddag.has('zebra')).toBe(true);
     expect(gaddag.has('ant')).toBe(true);
@@ -42,22 +42,22 @@ describe('buildGaddag', () => {
   });
 
   it('handles an empty word list', () => {
-    const gaddag = buildGaddag([]);
+    const gaddag = Gaddag.fromArray([]);
 
     expect(gaddag.has('a')).toBe(false);
-    expect(gaddag.hasPrefix('')).toBe(true);
+    expect(gaddag.hasPrefix('')).toBe(false);
     expect(gaddag.hasPrefix('a')).toBe(false);
   });
 
   it('skips empty words', () => {
-    const gaddag = buildGaddag(['', 'ab', '']);
+    const gaddag = Gaddag.fromArray(['', 'ab', '']);
 
     expect(gaddag.has('ab')).toBe(true);
     expect(gaddag.has('')).toBe(false);
   });
 
   it('supports one-letter words', () => {
-    const gaddag = buildGaddag(['a', 'ab']);
+    const gaddag = Gaddag.fromArray(['a', 'ab']);
 
     expect(gaddag.has('a')).toBe(true);
     expect(gaddag.has('b')).toBe(false);
@@ -66,7 +66,7 @@ describe('buildGaddag', () => {
 
   it('skips words longer than MAX_WORD_LENGTH', () => {
     const longWord = 'ab'.repeat(MAX_WORD_LENGTH);
-    const gaddag = buildGaddag([longWord, 'ab']);
+    const gaddag = Gaddag.fromArray([longWord, 'ab']);
 
     expect(gaddag.has('ab')).toBe(true);
     expect(gaddag.has(longWord)).toBe(false);
@@ -74,7 +74,7 @@ describe('buildGaddag', () => {
 
   it('supports words of exactly MAX_WORD_LENGTH', () => {
     const word = 'a'.repeat(MAX_WORD_LENGTH);
-    const gaddag = buildGaddag([word]);
+    const gaddag = Gaddag.fromArray([word]);
 
     expect(gaddag.has(word)).toBe(true);
     expect(gaddag.has(`${word}a`)).toBe(false);
@@ -83,12 +83,12 @@ describe('buildGaddag', () => {
   it('throws when the alphabet exceeds 63 distinct characters', () => {
     const words = Array.from({ length: 64 }, (_, index) => String.fromCharCode(97 + index));
 
-    expect(() => buildGaddag(words)).toThrow('Gaddag supports up to 63 distinct characters, got 64');
+    expect(() => Gaddag.fromArray(words)).toThrow('Gaddag supports up to 63 distinct characters, got 64');
   });
 
   it('supports an alphabet of exactly 63 distinct characters', () => {
     const words = Array.from({ length: 63 }, (_, index) => String.fromCharCode(97 + index));
-    const gaddag = buildGaddag(words);
+    const gaddag = Gaddag.fromArray(words);
 
     for (const word of words) {
       expect(gaddag.has(word)).toBe(true);
@@ -96,22 +96,42 @@ describe('buildGaddag', () => {
   });
 
   it('throws when given too many words', () => {
-    const words = new Array<string>(1 << 25);
+    const words = new Array<string>(MAX_WORDS);
 
-    expect(() => buildGaddag(words)).toThrow('Gaddag supports up to 33M words');
+    expect(() => Gaddag.fromArray(words)).toThrow('Gaddag supports up to 33M words');
+  });
+
+  it('accepts a word list one entry below the limit', () => {
+    // A sparse array keeps this cheap: only the populated entries are visited,
+    // and the guard compares against the declared length.
+    const words = new Array<string>(MAX_WORDS - 1);
+    words[0] = 'ab';
+
+    expect(() => Gaddag.fromArray(words)).toThrow('Gaddag supports string words only');
+  });
+
+  it('throws a clear error for non-string entries', () => {
+    expect(() => Gaddag.fromArray([42 as never])).toThrow('Gaddag supports string words only');
+    expect(() => Gaddag.fromArray([undefined as never])).toThrow('Gaddag supports string words only');
+    expect(() => Gaddag.fromArray(['ab', null as never])).toThrow('Gaddag supports string words only');
+  });
+
+  it('packs the highest word index and split position without overflow', () => {
+    // wordIndex << 6 | split must stay inside Int32: (MAX_WORDS - 1) << 6 | 63 === 2^31 - 1.
+    expect(((MAX_WORDS - 1) << 6) | MAX_WORD_LENGTH).toBe(2 ** 31 - 1);
   });
 
   it('shares common prefixes and suffixes (minimality)', () => {
     // A raw trie of all GADDAG sequences of these words would need hundreds of arcs.
-    const gaddag = buildGaddag(['talking', 'walking', 'talked', 'walked']);
+    const gaddag = Gaddag.fromArray(['talking', 'walking', 'talked', 'walked']);
 
     expect(gaddag.arcsCount).toBeLessThan(70);
   });
 
   it('builds identical automatons regardless of input order', () => {
     const words = ['car', 'card', 'care', 'cozy', 'bar', 'bard'];
-    const sorted = buildGaddag([...words].sort());
-    const reversed = buildGaddag([...words].sort().reverse());
+    const sorted = Gaddag.fromArray([...words].sort());
+    const reversed = Gaddag.fromArray([...words].sort().reverse());
 
     expect([...sorted.arcLabels]).toEqual([...reversed.arcLabels]);
     expect([...sorted.arcTargets]).toEqual([...reversed.arcTargets]);
@@ -126,7 +146,7 @@ describe('buildGaddag', () => {
       words.add(randomWord());
     }
 
-    const gaddag = buildGaddag([...words]);
+    const gaddag = Gaddag.fromArray([...words]);
 
     for (const word of words) {
       expect(gaddag.has(word)).toBe(true);
@@ -156,7 +176,7 @@ describe('buildGaddag', () => {
       return false;
     };
 
-    const gaddag = buildGaddag([...words]);
+    const gaddag = Gaddag.fromArray([...words]);
 
     for (let index = 0; index < 2000; ++index) {
       const prefix = randomWord();
@@ -174,7 +194,7 @@ describe('buildGaddag', () => {
       words.add(randomWord());
     }
 
-    const gaddag = buildGaddag([...words]);
+    const gaddag = Gaddag.fromArray([...words]);
 
     expect(gaddag.arcsCount).toBeGreaterThan(1 << 16);
 

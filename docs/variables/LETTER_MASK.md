@@ -8,6 +8,6 @@
 
 > `const` **LETTER\_MASK**: `63` = `63`
 
-Defined in: constants.ts:17
+Defined in: [constants.ts:20](https://github.com/kamilmielnik/gaddag/blob/master/src/constants.ts#L20)
 
 Mask extracting the letter from an arc label.

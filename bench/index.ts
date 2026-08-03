@@ -8,7 +8,7 @@ import { promisify } from 'node:util';
 import { path7za } from '7zip-bin';
 import { Bench } from 'tinybench';
 
-import { buildGaddag, Gaddag } from '../src/index.ts';
+import { Gaddag } from '../src/index.ts';
 import { type Dictionary, type DictionarySource, type SizeRow } from './types.ts';
 
 const README_PATH = new URL('../README.md', import.meta.url);
@@ -130,7 +130,7 @@ const loadDictionaries = async (): Promise<Dictionary[]> => {
     const path = await ensureTextDictionary(source.remote, source.local);
     console.log(`  Building gaddag from ${source.name}...`);
     const words = await readWords(path);
-    const gaddag = buildGaddag(words);
+    const gaddag = Gaddag.fromArray(words);
     const serialized = gaddag.serialize();
     dictionaries.push({ ...source, path, words, gaddag, serialized });
   }
@@ -203,7 +203,7 @@ const findMissingWord = (dict: Dictionary): string => {
 const runSlow = async (dict: Dictionary): Promise<Map<string, number>> => {
   const buildBench = new Bench({ iterations: 2, time: 0, warmup: false });
   buildBench.add('buildGaddag', () => {
-    buildGaddag(dict.words);
+    Gaddag.fromArray(dict.words);
   });
   await buildBench.run();
 

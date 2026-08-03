@@ -1,31 +1,15 @@
-import { LAST_ARC_FLAG, LETTER_MASK, MAX_LETTERS, MAX_WORD_LENGTH, MAX_WORDS } from './constants.ts';
-import { Gaddag } from './Gaddag.ts';
+import { LAST_ARC_FLAG, LETTER_MASK, MAX_LETTERS, MAX_WORD_LENGTH } from './constants.ts';
 import { type Alphabet, type EncodedWords } from './types.ts';
 
-/**
- * Builds a minimal GADDAG from a word list.
- *
- * The construction generates every GADDAG sequence (`reverse(prefix) [+ ◇ + suffix]`)
- * as a compact `(wordIndex << 6) | splitIndex` integer, orders them with an in-place
- * MSD radix sort, and feeds them to an incremental minimal-automaton builder
- * (Daciuk et al., 2000) backed by typed arrays and an open-addressing state registry.
- */
-export const buildGaddag = (words: string[]): Gaddag => {
-  if (words.length >= MAX_WORDS) {
-    throw new Error('Gaddag supports up to 33M words');
-  }
-
-  const { charCodes, letterByCharCode } = buildAlphabet(words);
-  const { itemsCount, wordBytes, wordOffsets, wordsCount } = encodeWords(words, letterByCharCode);
-  const items = generateItems(wordsCount, wordOffsets, itemsCount);
-  sortItems(items, wordBytes, wordOffsets);
-  return insertItems(items, wordBytes, wordOffsets, charCodes);
-};
-
-const buildAlphabet = (words: string[]): Alphabet => {
+/** Collects the alphabet of a word list, ordered by code point. */
+export const buildAlphabet = (words: string[]): Alphabet => {
   const codes = new Set<number>();
 
   for (const word of words) {
+    if (typeof word !== 'string') {
+      throw new TypeError('Gaddag supports string words only');
+    }
+
     if (word.length > MAX_WORD_LENGTH) {
       continue;
     }
@@ -49,7 +33,8 @@ const buildAlphabet = (words: string[]): Alphabet => {
   return { charCodes, letterByCharCode };
 };
 
-const encodeWords = (words: string[], letterByCharCode: Map<number, number>): EncodedWords => {
+/** Flattens a word list into letter indices. */
+export const encodeWords = (words: string[], letterByCharCode: Map<number, number>): EncodedWords => {
   let totalLength = 0;
   let wordsCount = 0;
 
@@ -86,7 +71,8 @@ const encodeWords = (words: string[], letterByCharCode: Map<number, number>): En
   return { itemsCount: totalLength, wordBytes, wordOffsets, wordsCount };
 };
 
-const generateItems = (wordsCount: number, wordOffsets: Int32Array, itemsCount: number): Int32Array => {
+/** Enumerates every `(word, split)` pair as a packed integer — one per GADDAG sequence. */
+export const generateItems = (wordsCount: number, wordOffsets: Int32Array, itemsCount: number): Int32Array => {
   const items = new Int32Array(itemsCount);
   let itemIndex = 0;
 
@@ -104,7 +90,10 @@ const generateItems = (wordsCount: number, wordOffsets: Int32Array, itemsCount: 
 
 const RADIX = MAX_LETTERS + 2;
 
-const sortItems = (items: Int32Array, wordBytes: Uint8Array, wordOffsets: Int32Array): void => {
+const INSERTION_SORT_THRESHOLD = 24;
+
+/** Orders the sequences with an in-place MSD radix sort. */
+export const sortItems = (items: Int32Array, wordBytes: Uint8Array, wordOffsets: Int32Array): void => {
   const auxiliary = new Int32Array(items.length);
   const counts = new Int32Array(RADIX);
   const starts = new Int32Array(RADIX);
@@ -134,6 +123,13 @@ const sortItems = (items: Int32Array, wordBytes: Uint8Array, wordOffsets: Int32A
     let depth = stack[stackTop + 2];
 
     if (high - low < 2) {
+      continue;
+    }
+
+    // Bucketing costs a fixed pass over all 65 buckets, which dwarfs the work
+    // for the many tiny ranges a radix sort produces near the leaves.
+    if (high - low <= INSERTION_SORT_THRESHOLD) {
+      sortRangeByInsertion(items, low, high, depth, wordBytes, wordOffsets);
       continue;
     }
 
@@ -179,7 +175,9 @@ const sortItems = (items: Int32Array, wordBytes: Uint8Array, wordOffsets: Int32A
         auxiliary[starts[charAt(item, depth, wordBytes, wordOffsets)]++] = item;
       }
 
-      items.set(auxiliary.subarray(low, high), low);
+      for (let index = low; index < high; ++index) {
+        items[index] = auxiliary[index];
+      }
 
       // After the scatter, starts[bucket] holds the end position of each bucket.
       for (let bucket = 1; bucket < RADIX; ++bucket) {
@@ -189,6 +187,50 @@ const sortItems = (items: Int32Array, wordBytes: Uint8Array, wordOffsets: Int32A
       }
 
       break;
+    }
+  }
+};
+
+/** Orders a small range by comparing sequences directly, from `depth` onwards. */
+const sortRangeByInsertion = (
+  items: Int32Array,
+  low: number,
+  high: number,
+  depth: number,
+  wordBytes: Uint8Array,
+  wordOffsets: Int32Array,
+): void => {
+  for (let index = low + 1; index < high; ++index) {
+    const item = items[index];
+    let position = index - 1;
+
+    while (position >= low && compareItems(items[position], item, depth, wordBytes, wordOffsets) > 0) {
+      items[position + 1] = items[position];
+      --position;
+    }
+
+    items[position + 1] = item;
+  }
+};
+
+/** Compares two sequences character by character, starting at `depth`. */
+const compareItems = (
+  left: number,
+  right: number,
+  depth: number,
+  wordBytes: Uint8Array,
+  wordOffsets: Int32Array,
+): number => {
+  for (let position = depth; ; ++position) {
+    const leftCharacter = charAt(left, position, wordBytes, wordOffsets);
+    const rightCharacter = charAt(right, position, wordBytes, wordOffsets);
+
+    if (leftCharacter !== rightCharacter) {
+      return leftCharacter - rightCharacter;
+    }
+
+    if (leftCharacter === 0) {
+      return 0;
     }
   }
 };
@@ -214,14 +256,14 @@ const charAt = (item: number, depth: number, wordBytes: Uint8Array, wordOffsets:
 };
 
 const MAX_DEPTH = MAX_WORD_LENGTH + 2;
+
 const MAX_ARCS_PER_STATE = MAX_LETTERS + 1;
 
-const insertItems = (
-  items: Int32Array,
-  wordBytes: Uint8Array,
-  wordOffsets: Int32Array,
-  charCodes: Int32Array,
-): Gaddag => {
+/**
+ * Feeds the ordered sequences to an incremental minimal-automaton builder
+ * (Daciuk et al., 2000) and returns the resulting arcs.
+ */
+export const insertItems = (items: Int32Array, wordBytes: Uint8Array, wordOffsets: Int32Array) => {
   const builder = new Builder();
   const sequence = new Uint8Array(MAX_DEPTH);
 
@@ -251,13 +293,14 @@ const insertItems = (
     builder.insert(sequence, sequenceLength);
   }
 
-  return builder.finish(charCodes);
+  return builder.finish();
 };
 
 const INITIAL_CAPACITY = 1 << 16;
 
 /** FNV-1a hash parameters. */
 const FNV_OFFSET_BASIS = 0x811c9dc5;
+
 const FNV_PRIME = 16777619;
 
 class Builder {
@@ -320,19 +363,19 @@ class Builder {
     }
 
     pathFinal[length] = 1;
-    previous.set(sequence.subarray(0, length));
+    previous.set(sequence);
     this.previousLength = length;
   }
 
-  public finish(charCodes: Int32Array): Gaddag {
+  public finish() {
     for (let depth = this.previousLength; depth > 0; --depth) {
       this.freeze(depth);
     }
 
     const rootRef = this.registerState(0);
-    const labels = this.labels.slice(0, this.arcTop);
-    const targets = this.targets.slice(0, this.arcTop);
-    return new Gaddag(labels, targets, rootRef, charCodes);
+    const arcLabels = this.labels.slice(0, this.arcTop);
+    const arcTargets = this.targets.slice(0, this.arcTop);
+    return { arcLabels, arcTargets, rootRef };
   }
 
   /** Minimizes the state at `depth` and patches its parent's dangling arc. */
