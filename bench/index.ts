@@ -17,13 +17,13 @@ const CHARTS_DIR = new URL('./charts/', import.meta.url);
 const DICT_REPO_BASE = 'https://raw.githubusercontent.com/kamilmielnik/scrabble-dictionaries/master';
 
 const FAST_MARKER = 'BENCH:fast';
-const BUILD_MARKER = 'BENCH:buildGaddag';
+const BUILD_MARKER = 'BENCH:fromArray';
 const SERIALIZE_MARKER = 'BENCH:serialize';
 const DESERIALIZE_MARKER = 'BENCH:deserialize';
 const SIZE_MARKER = 'SIZE';
 
 const FAST_OPERATIONS = ['has (hit)', 'has (miss)', 'hasPrefix (hit)', 'hasPrefix (miss)', 'getArc'];
-const BUILD_OPERATIONS = ['buildGaddag'];
+const BUILD_OPERATIONS = ['Gaddag.fromArray'];
 const SERIALIZE_OPERATIONS = ['serialize'];
 const DESERIALIZE_OPERATIONS = ['deserialize'];
 
@@ -79,7 +79,7 @@ const main = async () => {
   await mkdir(chartsDirPath, { recursive: true });
   await writeFile(new URL('fast.svg', CHARTS_DIR).pathname, renderChart(FAST_OPERATIONS, dictionaries, fastResults));
   await writeFile(
-    new URL('buildGaddag.svg', CHARTS_DIR).pathname,
+    new URL('fromArray.svg', CHARTS_DIR).pathname,
     renderChart(BUILD_OPERATIONS, dictionaries, slowResults),
   );
   await writeFile(
@@ -109,7 +109,7 @@ const main = async () => {
   console.log('Updating README.md...');
   const original = await readFile(README_PATH, 'utf8');
   let updated = replaceBetween(original, FAST_MARKER, '![Fast operations chart](bench/charts/fast.svg)');
-  updated = replaceBetween(updated, BUILD_MARKER, '![buildGaddag chart](bench/charts/buildGaddag.svg)');
+  updated = replaceBetween(updated, BUILD_MARKER, '![Gaddag.fromArray chart](bench/charts/fromArray.svg)');
   updated = replaceBetween(updated, SERIALIZE_MARKER, '![Serialize chart](bench/charts/serialize.svg)');
   updated = replaceBetween(updated, DESERIALIZE_MARKER, '![Deserialize chart](bench/charts/deserialize.svg)');
   updated = replaceBetween(updated, SIZE_MARKER, sizeTable);
@@ -202,7 +202,7 @@ const findMissingWord = (dict: Dictionary): string => {
 
 const runSlow = async (dict: Dictionary): Promise<Map<string, number>> => {
   const buildBench = new Bench({ iterations: 2, time: 0, warmup: false });
-  buildBench.add('buildGaddag', () => {
+  buildBench.add('Gaddag.fromArray', () => {
     Gaddag.fromArray(dict.words);
   });
   await buildBench.run();

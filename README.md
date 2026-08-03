@@ -120,7 +120,7 @@ const isWord = (ref & 1) === 1; // true
 | --- | --- | --- |
 | Distinct characters (`MAX_LETTERS`) | 63 | `Gaddag.fromArray` throws — a letter index takes 6 bits, and `0` is reserved for the `◇` separator. |
 | Word length (`MAX_WORD_LENGTH`) | 63 | The word is skipped — no board fits it anyway, and a split position takes 6 bits. |
-| Word list length (`MAX_WORDS`) | 33,554,432 (`2^25`), exclusive | `Gaddag.fromArray` throws for lists of that length or longer — a word index and a split position pack into one 31-bit integer. |
+| Word list length (`MAX_WORDS`) | 33,554,432 (`2^25`) | `Gaddag.fromArray` throws for lists of that length or longer — a word index and a split position pack into one 31-bit integer. |
 
 Distinct characters (`MAX_LETTERS`) and word length (`MAX_WORD_LENGTH`) are counted in UTF-16 code units, not code points: a character outside the Basic Multilingual Plane (an emoji, a rare CJK ideograph) is a surrogate pair, so it takes two alphabet slots and two of a word's 63 characters. Words are matched consistently either way, and `hasPrefix` accepts a lone leading surrogate as a prefix.
 
@@ -256,9 +256,9 @@ Benchmarks are produced by [`bench/index.ts`](bench/index.ts) using [tinybench](
 ![Fast operations chart](bench/charts/fast.svg)
 <!-- BENCH:fast:end -->
 
-<!-- BENCH:buildGaddag:start -->
-![buildGaddag chart](bench/charts/buildGaddag.svg)
-<!-- BENCH:buildGaddag:end -->
+<!-- BENCH:fromArray:start -->
+![Gaddag.fromArray chart](bench/charts/fromArray.svg)
+<!-- BENCH:fromArray:end -->
 
 <!-- BENCH:serialize:start -->
 ![Serialize chart](bench/charts/serialize.svg)
