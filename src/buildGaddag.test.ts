@@ -101,11 +101,10 @@ describe('Gaddag.fromArray', () => {
     expect(() => Gaddag.fromArray(words)).toThrow('Gaddag supports up to 33M words');
   });
 
-  it('accepts a word list one entry below the limit', () => {
-    // A sparse array keeps this cheap: only the populated entries are visited,
-    // and the guard compares against the declared length.
+  it('applies the word count limit only at or above MAX_WORDS', () => {
+    // A sparse array of the largest accepted length. Iterating it still yields
+    // its holes, so the type guard is what rejects it — the count limit does not.
     const words = new Array<string>(MAX_WORDS - 1);
-    words[0] = 'ab';
 
     expect(() => Gaddag.fromArray(words)).toThrow('Gaddag supports string words only');
   });
