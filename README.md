@@ -174,8 +174,6 @@ Benchmarks are produced by [`bench/index.ts`](bench/index.ts) using [tinybench](
 ![Fast operations chart](bench/charts/fast.svg)
 <!-- BENCH:fast:end -->
 
-`buildGaddag`, `serialize`, and `deserialize` each run at a different order of magnitude (deserialization only wraps typed-array views over the input bytes), so each gets its own chart:
-
 <!-- BENCH:buildGaddag:start -->
 ![buildGaddag chart](bench/charts/buildGaddag.svg)
 <!-- BENCH:buildGaddag:end -->
