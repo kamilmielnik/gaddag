@@ -16,6 +16,8 @@
 > [!WARNING]
 > This project has been 100% LLM-generated. Use it at your own risk.
 
+----
+
 [GADDAG](https://en.wikipedia.org/wiki/GADDAG) ([Gordon, 1994](https://ericsink.com/downloads/faster-scrabble-gordon.pdf)) data structure implemented in TypeScript:
 
 - [Highly performant](#performance)
