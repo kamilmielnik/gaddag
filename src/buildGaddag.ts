@@ -1,10 +1,14 @@
-import { LAST_ARC_FLAG, LETTER_MASK, MAX_LETTERS, MAX_WORD_LENGTH } from './constants.ts';
+import { LAST_ARC_FLAG, LETTER_MASK, MAX_LETTERS, MAX_WORD_LENGTH, MAX_WORDS } from './constants.ts';
 import { type EncodedWords, type GaddagArcs, type WordListScan } from './types.ts';
 
 /** Char codes are UTF-16 code units, so this bounds the alphabet scan table. */
 const CHAR_CODE_COUNT = 0x10000;
 
-/** Collects the alphabet of a word list (ordered by UTF-16 code unit) and counts the kept words and letters. */
+/**
+ * Collects the alphabet of a word list (ordered by UTF-16 code unit) and counts
+ * the kept words and letters. Enforces {@link MAX_LETTERS} and {@link MAX_WORDS},
+ * guarding every pipeline built on the scan.
+ */
 export const scanWords = (words: string[]): WordListScan => {
   // One flag per code unit — far cheaper than a Set at dictionary scale, and
   // scanning the flags in order yields the sorted alphabet for free.
@@ -37,6 +41,10 @@ export const scanWords = (words: string[]): WordListScan => {
 
   if (lettersCount > MAX_LETTERS) {
     throw new Error(`Gaddag supports up to ${MAX_LETTERS} distinct characters, got ${lettersCount}`);
+  }
+
+  if (wordsCount > MAX_WORDS) {
+    throw new Error(`Gaddag supports up to ${MAX_WORDS} words, got ${wordsCount}`);
   }
 
   const charCodes = new Int32Array(lettersCount);
@@ -524,8 +532,9 @@ class Builder {
   }
 
   private appendArcs(base: number, count: number): number {
-    // One line, because no test can build 2^30 arcs and line coverage must stay full.
-    if (this.arcTop + count > MAX_ARCS) throw new Error(`Gaddag supports up to ${MAX_ARCS} arcs`);
+    if (this.arcTop + count > MAX_ARCS) {
+      throw new Error(`Gaddag supports up to ${MAX_ARCS} arcs`);
+    }
 
     if (this.arcTop + count > this.labels.length) {
       const capacity = Math.max(this.labels.length * 2, this.arcTop + count);

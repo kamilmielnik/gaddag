@@ -131,13 +131,13 @@ Empty words are skipped; a non-string entry throws. Duplicated words and unsorte
 
 # Deserializing untrusted data
 
-`Gaddag.deserialize` rejects data that does not describe a well-formed automaton: every state's arcs are sorted with no duplicate letters, and following arcs always terminates — through `has`, `hasPrefix`, `getArc`, and any traversal you write on top of them. The check reads every arc once, which is the bulk of what deserialization costs; `{ trusted: true }` skips it:
+`Gaddag.deserialize` rejects data that does not describe a well-formed automaton: every state's arcs are sorted with no duplicate letters, and no walk runs deeper than `MAX_WORD_LENGTH` + 1 arcs — the longest sequence `serialize` can write — so following arcs always terminates, through `has`, `hasPrefix`, `getArc`, and any traversal you write on top of them. The check reads every arc once, which is the bulk of what deserialization costs; `{ trusted: true }` skips it:
 
 ```TypeScript
 const gaddag = Gaddag.deserialize(bytes, { trusted: true }); // only for data you serialized yourself
 ```
 
-Skipping the check on data you did not produce is what an attacker needs: a handful of crafted bytes can describe a cycle, which makes the automaton accept an infinite language and sends any code that walks it into an endless loop.
+Skipping the check on data you did not produce is what an attacker needs: a handful of crafted bytes can describe a cycle — an automaton accepting an infinite language, sending any code that walks it into an endless loop — or a chain of states deep enough to overflow the stack of a recursive traversal.
 
 The check is what the [deserialization benchmark](#performance) measures, and it dominates the cost — the rest of deserializing is a few typed-array views over the buffer, so `{ trusted: true }` is roughly three orders of magnitude faster.
 
@@ -191,7 +191,7 @@ const gaddag = Gaddag.deserialize(buffer);
 
 A GADDAG stores `reverse(prefix) + ◇ + suffix` paths, so all words starting with a prefix live behind a single separator arc: follow the reversed prefix, cross `◇`, and collect every suffix.
 
-`collectWords` below recurses as deep as the words are long and returns as many words as the automaton encodes. That is bounded for a dictionary you built or deserialized without `{ trusted: true }` — see [Deserializing untrusted data](#deserializing-untrusted-data).
+`collectWords` below recurses as deep as the words are long — at most `MAX_WORD_LENGTH` + 1 frames for a dictionary you built or deserialized without `{ trusted: true }`. How many words it returns is a different matter: a crafted file can encode enormous numbers of them — see [Deserializing untrusted data](#deserializing-untrusted-data).
 
 ```TypeScript
 import { Gaddag, LAST_ARC_FLAG, LETTER_MASK, SEPARATOR } from '@kamilmielnik/gaddag';

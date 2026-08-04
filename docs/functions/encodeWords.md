@@ -8,7 +8,7 @@
 
 > **encodeWords**(`words`, `scan`): [`EncodedWords`](../interfaces/EncodedWords.md)
 
-Defined in: [buildGaddag.ts:65](https://github.com/kamilmielnik/gaddag/blob/master/src/buildGaddag.ts#L65)
+Defined in: [buildGaddag.ts:73](https://github.com/kamilmielnik/gaddag/blob/master/src/buildGaddag.ts#L73)
 
 Flattens a word list into letter indices. Expects the same `words` the scan
 came from — [scanWords](scanWords.md) is what validates the entries.

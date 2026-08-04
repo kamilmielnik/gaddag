@@ -236,6 +236,12 @@ describe('scanWords', () => {
     expect(scan.itemsCount).toBe(2);
     expect([...scan.charCodes]).toEqual(['a', 'b'].map((letter) => letter.charCodeAt(0)));
   });
+
+  it('throws when the kept words exceed MAX_WORDS, guarding pipelines that skip fromArray', () => {
+    const words = new Array<string>(MAX_WORDS + 1).fill('a');
+
+    expect(() => scanWords(words)).toThrow(`Gaddag supports up to ${MAX_WORDS} words, got ${MAX_WORDS + 1}`);
+  });
 });
 
 describe('encodeWords', () => {

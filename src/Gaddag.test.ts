@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'bun:test';
 
-import { HEADER_BYTES, LAST_ARC_FLAG, LETTER_MASK, MAX_LETTERS, SEPARATOR } from './constants.ts';
+import {
+  HEADER_BYTES,
+  LAST_ARC_FLAG,
+  LETTER_MASK,
+  MAGIC,
+  MAX_LETTERS,
+  MAX_WORD_LENGTH,
+  SEPARATOR,
+} from './constants.ts';
 import { Gaddag } from './Gaddag.ts';
 
 const arcTargetsOf = (bytes: Uint8Array): Int32Array => {
@@ -27,6 +35,28 @@ const firstMultiArcStateOf = (labels: Uint8Array): number => {
   }
 
   throw new Error('No multi-arc state in the automaton');
+};
+
+// A chain of `stateCount` single-arc states, each targeting the one before it —
+// a structurally valid automaton spelling 'a'.repeat(stateCount), at any depth.
+const chainOf = (stateCount: number): Uint8Array => {
+  const arcCount = stateCount + 1;
+  const bytes = new Uint8Array(HEADER_BYTES + 4 * (1 + arcCount) + arcCount);
+  const header = new Int32Array(bytes.buffer, 0, 4);
+  header[0] = MAGIC;
+  header[1] = 1;
+  header[2] = arcCount;
+  header[3] = stateCount << 1;
+  new Int32Array(bytes.buffer, HEADER_BYTES, 1)[0] = 'a'.charCodeAt(0);
+  const targets = new Int32Array(bytes.buffer, HEADER_BYTES + 4, arcCount);
+  const labels = new Uint8Array(bytes.buffer, HEADER_BYTES + 4 * (1 + arcCount), arcCount);
+
+  for (let state = 1; state <= stateCount; ++state) {
+    labels[state] = 1 | LAST_ARC_FLAG;
+    targets[state] = state === 1 ? 1 : (state - 1) << 1;
+  }
+
+  return bytes;
 };
 
 const WORDS = [
@@ -473,9 +503,24 @@ describe('Gaddag', () => {
     });
 
     it('accepts the structural pass on every dictionary it writes', () => {
-      for (const words of [WORDS, [], ['a'], ['💚a', '💙b']]) {
+      // The last entry produces the deepest possible automaton: a maximum-length
+      // word split behind a separator, right at the structural pass's depth bound.
+      for (const words of [WORDS, [], ['a'], ['💚a', '💙b'], ['a'.repeat(MAX_WORD_LENGTH)]]) {
         expect(() => Gaddag.deserialize(Gaddag.fromArray(words).serialize())).not.toThrow();
       }
+    });
+
+    it('accepts a chain as deep as a maximum-length word with its separator', () => {
+      const gaddag = Gaddag.deserialize(chainOf(MAX_WORD_LENGTH + 1));
+
+      expect(gaddag.has('a'.repeat(MAX_WORD_LENGTH + 1))).toBe(true);
+    });
+
+    it('rejects data whose arc paths run deeper than any serialized word', () => {
+      // A deep chain is finite yet spells a word fromArray could never accept,
+      // and it overflows the stack of any traversal that recurses per letter.
+      expect(() => Gaddag.deserialize(chainOf(MAX_WORD_LENGTH + 2))).toThrow('Invalid Gaddag data');
+      expect(() => Gaddag.deserialize(chainOf(100_000))).toThrow('Invalid Gaddag data');
     });
 
     it('skips the structural pass for trusted data', () => {

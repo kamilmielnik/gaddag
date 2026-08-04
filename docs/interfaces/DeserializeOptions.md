@@ -16,9 +16,10 @@ Options of `Gaddag.deserialize`.
 
 > `optional` **trusted?**: `boolean`
 
-Defined in: [types.ts:38](https://github.com/kamilmielnik/gaddag/blob/master/src/types.ts#L38)
+Defined in: [types.ts:39](https://github.com/kamilmielnik/gaddag/blob/master/src/types.ts#L39)
 
 Skips the structural pass over the arcs — the pass that rules out cycles,
-out-of-range targets, and mis-sorted states. Set it only for data this
-library produced itself:
-without it, crafted input can make arc following loop forever.
+out-of-range targets, mis-sorted states, and paths deeper than any
+serialized word. Only skip it for data this library produced itself:
+on crafted input, the automaton can send arc-following code into an
+endless loop.
