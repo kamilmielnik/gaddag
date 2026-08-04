@@ -13,25 +13,25 @@
 <line x1="84" y1="24" x2="720" y2="24" stroke="#eee" stroke-width="1"/>
 <text x="76" y="28" text-anchor="end" fill="#555">50M</text>
 <text x="22" y="187" text-anchor="middle" fill="#555" transform="rotate(-90 22 187)">ops / sec</text>
-<rect x="96.0" y="295.9" width="32.4" height="54.1" fill="#3b82f6"><title>🇺🇸 en-US · has (hit): 8.30M ops/sec</title></rect>
-<rect x="130.4" y="302.1" width="32.4" height="47.9" fill="#10b981"><title>🇬🇧 en-GB · has (hit): 7.35M ops/sec</title></rect>
-<rect x="164.8" y="320.2" width="32.4" height="29.8" fill="#f59e0b"><title>🇵🇱 pl-PL · has (hit): 4.56M ops/sec</title></rect>
+<rect x="96.0" y="298.9" width="32.4" height="51.1" fill="#3b82f6"><title>🇺🇸 en-US · has (hit): 7.84M ops/sec</title></rect>
+<rect x="130.4" y="305.8" width="32.4" height="44.2" fill="#10b981"><title>🇬🇧 en-GB · has (hit): 6.78M ops/sec</title></rect>
+<rect x="164.8" y="318.5" width="32.4" height="31.5" fill="#f59e0b"><title>🇵🇱 pl-PL · has (hit): 4.83M ops/sec</title></rect>
 <text x="147.6" y="376" text-anchor="middle" fill="#111" font-weight="600" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">has (hit)</text>
-<rect x="223.2" y="287.9" width="32.4" height="62.1" fill="#3b82f6"><title>🇺🇸 en-US · has (miss): 9.52M ops/sec</title></rect>
-<rect x="257.6" y="292.0" width="32.4" height="58.0" fill="#10b981"><title>🇬🇧 en-GB · has (miss): 8.89M ops/sec</title></rect>
-<rect x="292.0" y="311.3" width="32.4" height="38.7" fill="#f59e0b"><title>🇵🇱 pl-PL · has (miss): 5.93M ops/sec</title></rect>
+<rect x="223.2" y="290.5" width="32.4" height="59.5" fill="#3b82f6"><title>🇺🇸 en-US · has (miss): 9.13M ops/sec</title></rect>
+<rect x="257.6" y="299.0" width="32.4" height="51.0" fill="#10b981"><title>🇬🇧 en-GB · has (miss): 7.82M ops/sec</title></rect>
+<rect x="292.0" y="314.9" width="32.4" height="35.1" fill="#f59e0b"><title>🇵🇱 pl-PL · has (miss): 5.38M ops/sec</title></rect>
 <text x="274.8" y="376" text-anchor="middle" fill="#111" font-weight="600" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">has (miss)</text>
-<rect x="350.4" y="218.5" width="32.4" height="131.5" fill="#3b82f6"><title>🇺🇸 en-US · hasPrefix (hit): 20.17M ops/sec</title></rect>
-<rect x="384.8" y="222.9" width="32.4" height="127.1" fill="#10b981"><title>🇬🇧 en-GB · hasPrefix (hit): 19.49M ops/sec</title></rect>
-<rect x="419.2" y="229.6" width="32.4" height="120.4" fill="#f59e0b"><title>🇵🇱 pl-PL · hasPrefix (hit): 18.46M ops/sec</title></rect>
+<rect x="350.4" y="224.4" width="32.4" height="125.6" fill="#3b82f6"><title>🇺🇸 en-US · hasPrefix (hit): 19.26M ops/sec</title></rect>
+<rect x="384.8" y="238.6" width="32.4" height="111.4" fill="#10b981"><title>🇬🇧 en-GB · hasPrefix (hit): 17.08M ops/sec</title></rect>
+<rect x="419.2" y="225.8" width="32.4" height="124.2" fill="#f59e0b"><title>🇵🇱 pl-PL · hasPrefix (hit): 19.04M ops/sec</title></rect>
 <text x="402" y="376" text-anchor="middle" fill="#111" font-weight="600" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">hasPrefix (hit)</text>
-<rect x="477.6" y="288.7" width="32.4" height="61.3" fill="#3b82f6"><title>🇺🇸 en-US · hasPrefix (miss): 9.40M ops/sec</title></rect>
-<rect x="512.0" y="292.0" width="32.4" height="58.0" fill="#10b981"><title>🇬🇧 en-GB · hasPrefix (miss): 8.89M ops/sec</title></rect>
-<rect x="546.4" y="312.0" width="32.4" height="38.0" fill="#f59e0b"><title>🇵🇱 pl-PL · hasPrefix (miss): 5.83M ops/sec</title></rect>
+<rect x="477.6" y="289.4" width="32.4" height="60.6" fill="#3b82f6"><title>🇺🇸 en-US · hasPrefix (miss): 9.30M ops/sec</title></rect>
+<rect x="512.0" y="298.3" width="32.4" height="51.7" fill="#10b981"><title>🇬🇧 en-GB · hasPrefix (miss): 7.93M ops/sec</title></rect>
+<rect x="546.4" y="314.1" width="32.4" height="35.9" fill="#f59e0b"><title>🇵🇱 pl-PL · hasPrefix (miss): 5.51M ops/sec</title></rect>
 <text x="529.2" y="376" text-anchor="middle" fill="#111" font-weight="600" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">hasPrefix (miss)</text>
-<rect x="604.8" y="141.6" width="32.4" height="208.4" fill="#3b82f6"><title>🇺🇸 en-US · getArc: 31.96M ops/sec</title></rect>
-<rect x="639.2" y="150.6" width="32.4" height="199.4" fill="#10b981"><title>🇬🇧 en-GB · getArc: 30.58M ops/sec</title></rect>
-<rect x="673.6" y="192.2" width="32.4" height="157.8" fill="#f59e0b"><title>🇵🇱 pl-PL · getArc: 24.20M ops/sec</title></rect>
+<rect x="604.8" y="151.5" width="32.4" height="198.5" fill="#3b82f6"><title>🇺🇸 en-US · getArc: 30.44M ops/sec</title></rect>
+<rect x="639.2" y="190.5" width="32.4" height="159.5" fill="#10b981"><title>🇬🇧 en-GB · getArc: 24.46M ops/sec</title></rect>
+<rect x="673.6" y="205.6" width="32.4" height="144.4" fill="#f59e0b"><title>🇵🇱 pl-PL · getArc: 22.15M ops/sec</title></rect>
 <text x="656.4" y="376" text-anchor="middle" fill="#111" font-weight="600" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">getArc</text>
 <rect x="744" y="24" width="14" height="14" rx="2" fill="#3b82f6"/>
 <text x="766" y="35" fill="#222" font-weight="600">🇺🇸 en-US</text>
