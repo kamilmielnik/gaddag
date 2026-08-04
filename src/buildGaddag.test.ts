@@ -6,9 +6,9 @@ import { Gaddag } from './Gaddag.ts';
 const MULBERRY32_INCREMENT = 0x6d2b79f5;
 const UINT32_RANGE = 2 ** 32;
 
-const createSeededRandom = (seed: number) => {
+const createSeededRandom = (seed: number): (() => number) => {
   let state = seed;
-  return () => {
+  return (): number => {
     state = (state + MULBERRY32_INCREMENT) | 0;
     let value = Math.imul(state ^ (state >>> 15), 1 | state);
     value = (value + Math.imul(value ^ (value >>> 7), 61 | value)) ^ value;
@@ -16,10 +16,10 @@ const createSeededRandom = (seed: number) => {
   };
 };
 
-const createRandomWordGenerator = (seed: number, letters: string, maxLength: number) => {
+const createRandomWordGenerator = (seed: number, letters: string, maxLength: number): (() => string) => {
   const random = createSeededRandom(seed);
 
-  return () => {
+  return (): string => {
     const length = 1 + Math.floor(random() * maxLength);
     let word = '';
 
@@ -96,15 +96,15 @@ describe('Gaddag.fromArray', () => {
   });
 
   it('throws when given too many words', () => {
-    const words = new Array<string>(MAX_WORDS);
+    const words = new Array<string>(MAX_WORDS + 1);
 
-    expect(() => Gaddag.fromArray(words)).toThrow(`Gaddag supports up to ${MAX_WORDS - 1} words, got ${MAX_WORDS}`);
+    expect(() => Gaddag.fromArray(words)).toThrow(`Gaddag supports up to ${MAX_WORDS} words, got ${MAX_WORDS + 1}`);
   });
 
-  it('applies the word count limit only at or above MAX_WORDS', () => {
+  it('applies the word count limit only above MAX_WORDS', () => {
     // A sparse array of the largest accepted length. Iterating it still yields
     // its holes, so the type guard is what rejects it — the count limit does not.
-    const words = new Array<string>(MAX_WORDS - 1);
+    const words = new Array<string>(MAX_WORDS);
 
     expect(() => Gaddag.fromArray(words)).toThrow('Gaddag supports string words only');
   });

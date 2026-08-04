@@ -101,7 +101,7 @@ Ref of the root state.
 
 > **get** **arcsCount**(): `number`
 
-Defined in: [Gaddag.ts:282](https://github.com/kamilmielnik/gaddag/blob/master/src/Gaddag.ts#L282)
+Defined in: [Gaddag.ts:288](https://github.com/kamilmielnik/gaddag/blob/master/src/Gaddag.ts#L288)
 
 Number of arcs in the automaton — the backing arrays additionally hold an unused sentinel at index 0.
 
@@ -115,14 +115,15 @@ Number of arcs in the automaton — the backing arrays additionally hold an unus
 
 > **getArc**(`ref`, `letter`): `number`
 
-Defined in: [Gaddag.ts:249](https://github.com/kamilmielnik/gaddag/blob/master/src/Gaddag.ts#L249)
+Defined in: [Gaddag.ts:250](https://github.com/kamilmielnik/gaddag/blob/master/src/Gaddag.ts#L250)
 
 Follows the arc labeled with `letter` from the state `ref` points at.
 Returns the target ref, or 0 when there is no such arc.
 
-A state's arcs are sorted by letter, so the scan stops as soon as it passes
-the wanted letter. The scan is also bounded by the array length, so that
-corrupted data cannot make it run forever.
+The root — the hottest state in move generation — is answered from a
+per-letter table. Any other state's arcs are sorted by letter, so the scan
+stops as soon as it passes the wanted letter. The scan is also bounded by
+the array length, so that corrupted data cannot make it run forever.
 
 #### Parameters
 
@@ -144,7 +145,7 @@ corrupted data cannot make it run forever.
 
 > **getLetter**(`charCode`): `number`
 
-Defined in: [Gaddag.ts:274](https://github.com/kamilmielnik/gaddag/blob/master/src/Gaddag.ts#L274)
+Defined in: [Gaddag.ts:280](https://github.com/kamilmielnik/gaddag/blob/master/src/Gaddag.ts#L280)
 
 Maps a UTF-16 code unit to its letter index, or -1 when `charCode` is not an integer or not in the alphabet.
 

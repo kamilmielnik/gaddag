@@ -8,8 +8,8 @@ export const MAX_LETTERS = 63;
 export const MAX_WORD_LENGTH = 63;
 
 /**
- * Exclusive upper bound on the word list length: lists of this length or longer
- * are rejected, because a word index and a split position pack into one 31-bit integer.
+ * Maximum word list length: a word index and a split position pack into one
+ * 31-bit integer, so `Gaddag.fromArray` rejects longer lists.
  */
 export const MAX_WORDS = 1 << 25;
 

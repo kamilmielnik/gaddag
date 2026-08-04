@@ -43,8 +43,8 @@ export class Gaddag {
    * radix sort, and fed to an incremental minimal-automaton builder.
    */
   public static fromArray(words: string[]): Gaddag {
-    if (words.length >= MAX_WORDS) {
-      throw new Error(`Gaddag supports up to ${MAX_WORDS - 1} words, got ${words.length}`);
+    if (words.length > MAX_WORDS) {
+      throw new Error(`Gaddag supports up to ${MAX_WORDS} words, got ${words.length}`);
     }
 
     const scan = scanWords(words);
@@ -242,11 +242,17 @@ export class Gaddag {
    * Follows the arc labeled with `letter` from the state `ref` points at.
    * Returns the target ref, or 0 when there is no such arc.
    *
-   * A state's arcs are sorted by letter, so the scan stops as soon as it passes
-   * the wanted letter. The scan is also bounded by the array length, so that
-   * corrupted data cannot make it run forever.
+   * The root — the hottest state in move generation — is answered from a
+   * per-letter table. Any other state's arcs are sorted by letter, so the scan
+   * stops as soon as it passes the wanted letter. The scan is also bounded by
+   * the array length, so that corrupted data cannot make it run forever.
    */
   public getArc(ref: number, letter: number): number {
+    if (ref === this.rootRef) {
+      // A letter outside 0..63 reads `undefined` from the table.
+      return this.rootArcs[letter] ?? 0;
+    }
+
     const labels = this.arcLabels;
     let index = ref >>> 1;
 

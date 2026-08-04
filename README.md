@@ -40,7 +40,6 @@ A GADDAG is a minimized automaton that, for every word `w` and every split point
   - [Serialize a GADDAG to a file](#serialize-a-gaddag-to-a-file)
   - [Load a serialized GADDAG from a file](#load-a-serialized-gaddag-from-a-file)
   - [Find all words with a given prefix](#find-all-words-with-a-given-prefix)
-- [Serialization and size](#serialization-and-size)
 - [Performance](#performance)
 
 # Installation
@@ -66,6 +65,7 @@ Good to know:
 - immutability is not enforced: the backing typed arrays are exposed directly (and shared with the input of [`Gaddag.deserialize`](https://github.com/kamilmielnik/gaddag/blob/master/docs/classes/Gaddag.md#deserialize) when it is 4-byte aligned) — treat them as read-only, writing to them corrupts the automaton
 - all exports are named (there is no default export)
 - `MAX_LETTERS`, `MAX_WORD_LENGTH`, and `MAX_WORDS` are described in [Limits](#limits)
+- the build pipeline behind `Gaddag.fromArray` (`scanWords`, `encodeWords`, `generateItems`, `sortItems`, `insertItems`) is exported too, along with its types, for custom tooling
 
 There are 2 ways to use the API.
 
@@ -91,7 +91,7 @@ copy.has('scrabble');                   // true
 
 ## [Arc API](https://github.com/kamilmielnik/gaddag/blob/master/docs/classes/Gaddag.md#methods)
 
-Walk the automaton arc-by-arc: start at [`rootRef`](https://github.com/kamilmielnik/gaddag/blob/master/docs/classes/Gaddag.md#rootref), map code points to letter indices with [`getLetter`](https://github.com/kamilmielnik/gaddag/blob/master/docs/classes/Gaddag.md#getletter) (`-1` when outside the alphabet), and follow arcs with [`getArc`](https://github.com/kamilmielnik/gaddag/blob/master/docs/classes/Gaddag.md#getarc) (`0` when absent). State refs encode `(firstArcIndex << 1) | isWordEnd` — after following the last letter of a word, check `ref & 1` to know whether the path spells a complete word. [`LAST_ARC_FLAG`](https://github.com/kamilmielnik/gaddag/blob/master/docs/variables/LAST_ARC_FLAG.md) and [`LETTER_MASK`](https://github.com/kamilmielnik/gaddag/blob/master/docs/variables/LETTER_MASK.md) describe the bit layout of arc labels for direct `arcLabels`/`arcTargets` traversal.
+Walk the automaton arc-by-arc: start at [`rootRef`](https://github.com/kamilmielnik/gaddag/blob/master/docs/classes/Gaddag.md#rootref), map UTF-16 code units to letter indices with [`getLetter`](https://github.com/kamilmielnik/gaddag/blob/master/docs/classes/Gaddag.md#getletter) (`-1` when outside the alphabet), and follow arcs with [`getArc`](https://github.com/kamilmielnik/gaddag/blob/master/docs/classes/Gaddag.md#getarc) (`0` when absent). State refs encode `(firstArcIndex << 1) | isWordEnd` — after following the last letter of a word, check `ref & 1` to know whether the path spells a complete word. [`LAST_ARC_FLAG`](https://github.com/kamilmielnik/gaddag/blob/master/docs/variables/LAST_ARC_FLAG.md) and [`LETTER_MASK`](https://github.com/kamilmielnik/gaddag/blob/master/docs/variables/LETTER_MASK.md) describe the bit layout of arc labels for direct `arcLabels`/`arcTargets` traversal.
 
 ### Example
 
@@ -121,7 +121,7 @@ const isWord = (ref & 1) === 1; // true
 | --- | --- | --- |
 | Distinct characters (`MAX_LETTERS`) | 63 | `Gaddag.fromArray` throws — a letter index takes 6 bits, and `0` is reserved for the `◇` separator. |
 | Word length (`MAX_WORD_LENGTH`) | 63 | The word is skipped — no board fits it anyway, and a split position takes 6 bits. |
-| Word list length (`MAX_WORDS`) | 33,554,432 (`2^25`) | `Gaddag.fromArray` throws for lists of that length or longer — a word index and a split position pack into one 31-bit integer. |
+| Word list length (`MAX_WORDS`) | 33,554,432 (`2^25`) | `Gaddag.fromArray` throws for longer lists — a word index and a split position pack into one 31-bit integer. |
 
 Distinct characters (`MAX_LETTERS`) and word length (`MAX_WORD_LENGTH`) are counted in UTF-16 code units, not code points: a character outside the Basic Multilingual Plane (an emoji, a rare CJK ideograph) is a surrogate pair, so it takes two alphabet slots and two of a word's 63 characters. Words are matched consistently either way, and `hasPrefix` accepts a lone leading surrogate as a prefix.
 
@@ -165,7 +165,7 @@ import { readFile } from 'node:fs/promises';
 import { Gaddag } from '@kamilmielnik/gaddag';
 
 const buffer = await readFile('dictionary.gaddag');
-const gaddag = Gaddag.deserialize(new Uint8Array(buffer.buffer, buffer.byteOffset, buffer.byteLength));
+const gaddag = Gaddag.deserialize(buffer);
 ```
 
 ## Find all words with a given prefix
@@ -226,34 +226,18 @@ const gaddag = Gaddag.fromArray(['scrabble', 'scrap', 'solver']);
 findWordsWithPrefix(gaddag, 'scra'); // ['scrabble', 'scrap']
 ```
 
-# Serialization and size
+# Performance
 
-`serialize` writes a `HEADER_BYTES`-long header — the `MAGIC` number, the alphabet size, the arc count and the root ref — followed by the alphabet and the two arc arrays. `MAGIC` (`"GDG1"`) doubles as the format version: a breaking change to the layout bumps it, so `deserialize` rejects files written by an older version with `Invalid Gaddag data` instead of misreading them. Cache serialized dictionaries freely — rebuild them whenever `deserialize` throws.
+Benchmarks are produced by [`bench/index.ts`](https://github.com/kamilmielnik/gaddag/blob/master/bench/index.ts) using [tinybench](https://github.com/tinylibs/tinybench), against these dictionaries. Run `bun run bench` to regenerate the table and charts below.
 
-The format uses the platform's native byte order — little-endian on every mainstream JavaScript engine; a file written with the opposite byte order is rejected by the magic check rather than misread. `deserialize` is zero-copy for 4-byte-aligned input: the returned `Gaddag` keeps reading from the given bytes, so do not mutate or reuse that buffer.
-
-<!-- SIZE:summary:start -->
-A GADDAG trades space for lookup speed: for SJP.PL (pl-PL) the serialized automaton is 43.69% smaller than the raw word list, and it compresses well — with [7-Zip](https://en.wikipedia.org/wiki/7z) at ultra compression level it takes just 20.64% of the raw word list size.
-<!-- SIZE:summary:end -->
-
-For serialization only, if space is preferred over lookup speed, use [@kamilmielnik/trie](https://github.com/kamilmielnik/trie) instead.
-
-<!-- SIZE:start -->
+<!-- DICTIONARIES:start -->
 | Language | 🇺🇸 en-US | 🇬🇧 en-GB | 🇵🇱 pl-PL |
 | --- | --- | --- | --- |
 | Name | [TWL06](https://en.wikipedia.org/wiki/NASPA_Word_List) | [SOWPODS](https://en.wikipedia.org/wiki/Collins_Scrabble_Words) | [SJP.PL](https://sjp.pl/slownik/dp.phtml) |
 | Source | [Download](https://raw.githubusercontent.com/kamilmielnik/scrabble-dictionaries/master/english/twl06.txt) | [Download](https://raw.githubusercontent.com/kamilmielnik/scrabble-dictionaries/master/english/sowpods.txt) | [Download](https://raw.githubusercontent.com/kamilmielnik/scrabble-dictionaries/master/polish/sjp.txt) |
 | Words count | 178,691 | 267,752 | 3,229,856 |
 | Arcs count | 830,453 | 1,203,339 | 4,749,456 |
-| Word list size [B] | 1,763,166 | 2,707,020 | 42,172,320 |
-| Serialized GADDAG size [B] | (+135.51%) 4,152,390 | (+122.27%) 6,016,820 | (-43.69%) 23,747,441 |
-| Word list size ([7z](https://en.wikipedia.org/wiki/7z)) [B] | (-78.54%) 378,418 | (-79.23%) 562,247 | (-86.84%) 5,550,546 |
-| Serialized GADDAG size ([7z](https://en.wikipedia.org/wiki/7z)) [B] | (+0.87%) 1,778,549 | (-4.16%) 2,594,461 | (-79.36%) 8,705,014 |
-<!-- SIZE:end -->
-
-# Performance
-
-Benchmarks are produced by [`bench/index.ts`](https://github.com/kamilmielnik/gaddag/blob/master/bench/index.ts) using [tinybench](https://github.com/tinylibs/tinybench). Run `bun run bench` to regenerate the charts below.
+<!-- DICTIONARIES:end -->
 
 <!-- BENCH:fast:start -->
 ![Fast operations chart](https://raw.githubusercontent.com/kamilmielnik/gaddag/master/bench/charts/fast.svg)

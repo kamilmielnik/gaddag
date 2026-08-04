@@ -1,16 +1,12 @@
-import { execFile } from 'node:child_process';
-import { existsSync, statSync } from 'node:fs';
-import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { existsSync } from 'node:fs';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { promisify } from 'node:util';
 
-import { path7za } from '7zip-bin';
 import { Bench } from 'tinybench';
 
 import { Gaddag } from '../src/index.ts';
-import { type Dictionary, type DictionarySource, type SizeRow } from './types.ts';
+import { type Dictionary, type DictionarySource } from './types.ts';
 
 const README_PATH = new URL('../README.md', import.meta.url);
 const DICT_DIR = new URL('./dictionaries/', import.meta.url);
@@ -23,7 +19,7 @@ const FAST_MARKER = 'BENCH:fast';
 const BUILD_MARKER = 'BENCH:fromArray';
 const SERIALIZE_MARKER = 'BENCH:serialize';
 const DESERIALIZE_MARKER = 'BENCH:deserialize';
-const SIZE_MARKER = 'SIZE';
+const DICTIONARIES_MARKER = 'DICTIONARIES';
 
 const FAST_OPERATIONS = ['has (hit)', 'has (miss)', 'hasPrefix (hit)', 'hasPrefix (miss)', 'getArc'];
 const BUILD_OPERATIONS = ['Gaddag.fromArray'];
@@ -37,7 +33,6 @@ const SOURCES: DictionarySource[] = [
     name: 'TWL06',
     nameUrl: 'https://en.wikipedia.org/wiki/NASPA_Word_List',
     sourceUrl: `${DICT_REPO_BASE}/english/twl06.txt`,
-    remote: `${DICT_REPO_BASE}/english/twl06.txt`,
     local: 'twl06.txt',
   },
   {
@@ -46,7 +41,6 @@ const SOURCES: DictionarySource[] = [
     name: 'SOWPODS',
     nameUrl: 'https://en.wikipedia.org/wiki/Collins_Scrabble_Words',
     sourceUrl: `${DICT_REPO_BASE}/english/sowpods.txt`,
-    remote: `${DICT_REPO_BASE}/english/sowpods.txt`,
     local: 'sowpods.txt',
   },
   {
@@ -55,12 +49,11 @@ const SOURCES: DictionarySource[] = [
     name: 'SJP.PL',
     nameUrl: 'https://sjp.pl/slownik/dp.phtml',
     sourceUrl: `${DICT_REPO_BASE}/polish/sjp.txt`,
-    remote: `${DICT_REPO_BASE}/polish/sjp.txt`,
     local: 'sjp.txt',
   },
 ];
 
-const main = async () => {
+const main = async (): Promise<void> => {
   const dictionaries = await loadDictionaries();
 
   console.log('Running fast-ops benchmarks...');
@@ -87,29 +80,17 @@ const main = async () => {
     renderChart(DESERIALIZE_OPERATIONS, dictionaries, slowResults),
   );
 
-  console.log('Measuring sizes (7z ultra)...');
-  const sizes = await measureSizes(dictionaries);
-  const sizeTable = formatSizeTable(dictionaries, sizes);
-
-  const sjp = dictionaries.find((dictionary) => dictionary.lang === 'pl-PL');
-  const sjpSizes = sjp && sizes.get(sjp.lang);
-  const sizeSummary =
-    sjp && sjpSizes
-      ? `A GADDAG trades space for lookup speed: for ${sjp.name} (${sjp.lang}) the serialized automaton is ` +
-        `${Math.abs(((sjpSizes.serialized - sjpSizes.raw) / sjpSizes.raw) * 100).toFixed(2)}% ` +
-        `${sjpSizes.serialized < sjpSizes.raw ? 'smaller' : 'larger'} than the raw word list, and it compresses well — ` +
-        `with [7-Zip](https://en.wikipedia.org/wiki/7z) at ultra compression level it takes just ` +
-        `${((sjpSizes.serialized7z / sjpSizes.raw) * 100).toFixed(2)}% of the raw word list size.`
-      : '';
-
   console.log('Updating README.md...');
   const original = await readFile(README_PATH, 'utf8');
-  let updated = replaceBetween(original, FAST_MARKER, `![Fast operations chart](${CHARTS_URL_BASE}/fast.svg)`);
+  let updated = replaceBetween(original, DICTIONARIES_MARKER, formatDictionaryTable(dictionaries));
+  updated = replaceBetween(updated, FAST_MARKER, `![Fast operations chart](${CHARTS_URL_BASE}/fast.svg)`);
   updated = replaceBetween(updated, BUILD_MARKER, `![Gaddag.fromArray chart](${CHARTS_URL_BASE}/fromArray.svg)`);
   updated = replaceBetween(updated, SERIALIZE_MARKER, `![Serialize chart](${CHARTS_URL_BASE}/serialize.svg)`);
-  updated = replaceBetween(updated, DESERIALIZE_MARKER, `![Gaddag.deserialize chart](${CHARTS_URL_BASE}/deserialize.svg)`);
-  updated = replaceBetween(updated, SIZE_MARKER, sizeTable);
-  updated = replaceBetween(updated, 'SIZE:summary', sizeSummary);
+  updated = replaceBetween(
+    updated,
+    DESERIALIZE_MARKER,
+    `![Gaddag.deserialize chart](${CHARTS_URL_BASE}/deserialize.svg)`,
+  );
 
   if (updated !== original) {
     await writeFile(README_PATH, updated);
@@ -123,12 +104,12 @@ const loadDictionaries = async (): Promise<Dictionary[]> => {
   console.log('Loading dictionaries...');
   const dictionaries: Dictionary[] = [];
   for (const source of SOURCES) {
-    const path = await ensureTextDictionary(source.remote, source.local);
+    const path = await ensureTextDictionary(source.sourceUrl, source.local);
     console.log(`  Building gaddag from ${source.name}...`);
     const words = await readWords(path);
     const gaddag = Gaddag.fromArray(words);
     const serialized = gaddag.serialize();
-    dictionaries.push({ ...source, path, words, gaddag, serialized });
+    dictionaries.push({ ...source, words, gaddag, serialized });
   }
   return dictionaries;
 };
@@ -359,91 +340,34 @@ const formatHzAxis = (hz: number): string => {
 const escapeXml = (s: string): string =>
   s.replace(/[<>&"]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' })[c] ?? c);
 
-const measureSizes = async (dictionaries: Dictionary[]): Promise<Map<string, SizeRow>> => {
-  await ensure7zaExecutable();
-  const results = new Map<string, SizeRow>();
-  const tmpDir = await mkdtemp(join(tmpdir(), 'gaddag-size-'));
-
-  try {
-    for (const dict of dictionaries) {
-      console.log(`  Measuring ${dict.name}...`);
-      const raw = statSync(dict.path).size;
-      const serializedPath = join(tmpDir, `${dict.local}.gaddag`);
-      await writeFile(serializedPath, dict.serialized);
-      const serialized = statSync(serializedPath).size;
-      const raw7z = await compressTo7z(dict.path, join(tmpDir, `${dict.local}.7z`));
-      const serialized7z = await compressTo7z(serializedPath, join(tmpDir, `${dict.local}.gaddag.7z`));
-      results.set(dict.lang, { raw, serialized, raw7z, serialized7z });
-    }
-  } finally {
-    await rm(tmpDir, { recursive: true, force: true });
-  }
-
-  return results;
-};
-
-const ensure7zaExecutable = async (): Promise<void> => {
-  try {
-    await chmod(path7za, 0o755);
-  } catch {
-    // already executable or filesystem doesn't support it
-  }
-};
-
-const execFileAsync = promisify(execFile);
-
-const compressTo7z = async (sourcePath: string, outPath: string): Promise<number> => {
-  await rm(outPath, { force: true });
-  await execFileAsync(path7za, ['a', '-t7z', '-mx=9', '-mfb=273', '-ms=on', '-mmt=on', outPath, sourcePath], {
-    maxBuffer: 1024 * 1024 * 64,
-  });
-  return statSync(outPath).size;
-};
-
-const formatSizeTable = (dictionaries: Dictionary[], sizes: Map<string, SizeRow>): string => {
-  const sevenZ = `[7z](https://en.wikipedia.org/wiki/7z)`;
+const formatDictionaryTable = (dictionaries: Dictionary[]): string => {
   const header =
     `| Language | ${dictionaries.map((d) => `${d.flag} ${d.lang}`).join(' | ')} |\n` +
     `| --- | ${dictionaries.map(() => '---').join(' | ')} |`;
 
-  const cellRow = (project: (c: SizeRow) => string): string =>
-    dictionaries
-      .map((d) => {
-        const c = sizes.get(d.lang);
-        return c ? project(c) : '—';
-      })
-      .join(' | ');
-
   const rows = [
     `| Name | ${dictionaries.map((d) => `[${d.name}](${d.nameUrl})`).join(' | ')} |`,
     `| Source | ${dictionaries.map((d) => `[Download](${d.sourceUrl})`).join(' | ')} |`,
-    `| Words count | ${dictionaries.map((d) => formatBytes(d.words.length)).join(' | ')} |`,
-    `| Arcs count | ${dictionaries.map((d) => formatBytes(d.gaddag.arcsCount)).join(' | ')} |`,
-    `| Word list size [B] | ${cellRow((c) => formatBytes(c.raw))} |`,
-    `| Serialized GADDAG size [B] | ${cellRow((c) => formatDelta(c.serialized, c.raw))} |`,
-    `| Word list size (${sevenZ}) [B] | ${cellRow((c) => formatDelta(c.raw7z, c.raw))} |`,
-    `| Serialized GADDAG size (${sevenZ}) [B] | ${cellRow((c) => formatDelta(c.serialized7z, c.raw))} |`,
+    `| Words count | ${dictionaries.map((d) => formatCount(d.words.length)).join(' | ')} |`,
+    `| Arcs count | ${dictionaries.map((d) => formatCount(d.gaddag.arcsCount)).join(' | ')} |`,
   ];
 
   return [header, ...rows].join('\n');
 };
 
-const formatBytes = (bytes: number): string => bytes.toLocaleString('en-US');
+const formatCount = (count: number): string => count.toLocaleString('en-US');
 
-const formatDelta = (current: number, baseline: number): string => {
-  const percent = ((current - baseline) / baseline) * 100;
-  const sign = percent >= 0 ? '+' : '';
-  return `(${sign}${percent.toFixed(2)}%) ${formatBytes(current)}`;
-};
+const escapeRegExp = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 const replaceBetween = (source: string, marker: string, replacement: string): string => {
   const open = `<!-- ${marker}:start -->`;
   const close = `<!-- ${marker}:end -->`;
-  const pattern = new RegExp(`${open}[\\s\\S]*?${close}`);
+  const pattern = new RegExp(`${escapeRegExp(open)}[\\s\\S]*?${escapeRegExp(close)}`);
   if (!pattern.test(source)) {
     throw new Error(`Markers for "${marker}" not found in README`);
   }
-  return source.replace(pattern, `${open}\n${replacement}\n${close}`);
+  // A replacer function, so `$` in the replacement is never a substitution pattern.
+  return source.replace(pattern, () => `${open}\n${replacement}\n${close}`);
 };
 
 await main();

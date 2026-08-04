@@ -10,6 +10,10 @@ Defined in: [types.ts:2](https://github.com/kamilmielnik/gaddag/blob/master/src/
 
 Letters of a word list, indexed 1..63 in ascending code-unit order (0 is the separator).
 
+## Extended by
+
+- [`WordListScan`](WordListScan.md)
+
 ## Properties
 
 ### charCodes

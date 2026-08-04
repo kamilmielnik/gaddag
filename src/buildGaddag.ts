@@ -1,13 +1,5 @@
 import { LAST_ARC_FLAG, LETTER_MASK, MAX_LETTERS, MAX_WORD_LENGTH } from './constants.ts';
-import { type Alphabet, type EncodedWords } from './types.ts';
-
-/** {@link Alphabet} of a word list plus the sizes of the words a Gaddag keeps (non-empty, within length limits). */
-export interface WordListScan extends Alphabet {
-  /** Total letters across kept words — one GADDAG sequence per letter. */
-  itemsCount: number;
-  /** Number of kept words. */
-  wordsCount: number;
-}
+import { type EncodedWords, type GaddagArcs, type WordListScan } from './types.ts';
 
 /** Collects the alphabet of a word list (ordered by UTF-16 code unit) and counts the kept words and letters. */
 export const scanWords = (words: string[]): WordListScan => {
@@ -99,9 +91,13 @@ const INSERTION_SORT_THRESHOLD = 24;
 
 /** Orders the sequences with an in-place MSD radix sort. */
 export const sortItems = (items: Int32Array, wordBytes: Uint8Array, wordOffsets: Int32Array): void => {
-  const auxiliary = new Int32Array(items.length);
+  // Radix character of each item in the range being scattered, so the in-place
+  // scatter does not recompute it as items move — 1 byte per item, in place of
+  // the 4 bytes per item an auxiliary scatter buffer would cost.
+  const buckets = new Uint8Array(items.length);
   const counts = new Int32Array(RADIX);
   const starts = new Int32Array(RADIX);
+  const nexts = new Int32Array(RADIX);
   // Manual stack of (low, high, depth) ranges to avoid recursion.
   let stack = new Int32Array(3 * 64);
   let stackTop = 0;
@@ -142,7 +138,9 @@ export const sortItems = (items: Int32Array, wordBytes: Uint8Array, wordOffsets:
       counts.fill(0);
 
       for (let index = low; index < high; ++index) {
-        ++counts[charAt(items[index], depth, wordBytes, wordOffsets)];
+        const bucket = charAt(items[index], depth, wordBytes, wordOffsets);
+        buckets[index] = bucket;
+        ++counts[bucket];
       }
 
       // Skip scatter when the whole range shares the character at this depth.
@@ -172,20 +170,45 @@ export const sortItems = (items: Int32Array, wordBytes: Uint8Array, wordOffsets:
 
       for (let bucket = 0; bucket < RADIX; ++bucket) {
         starts[bucket] = position;
+        nexts[bucket] = position;
         position += counts[bucket];
       }
 
-      for (let index = low; index < high; ++index) {
-        const item = items[index];
-        auxiliary[starts[charAt(item, depth, wordBytes, wordOffsets)]++] = item;
+      let lastBucket = RADIX - 1;
+
+      while (counts[lastBucket] === 0) {
+        --lastBucket;
       }
 
-      items.set(auxiliary.subarray(low, high), low);
+      // In-place scatter (American flag sort) — swaps each item into its bucket,
+      // chasing the displaced item. Chains only ever displace items still at
+      // their count-pass positions, so the cached radix characters stay valid,
+      // and once every earlier bucket is settled the last one already is.
+      for (let bucket = 0; bucket < lastBucket; ++bucket) {
+        const end = starts[bucket] + counts[bucket];
 
-      // After the scatter, starts[bucket] holds the end position of each bucket.
+        while (nexts[bucket] < end) {
+          let item = items[nexts[bucket]];
+          let itemBucket = buckets[nexts[bucket]];
+
+          while (itemBucket !== bucket) {
+            const target = nexts[itemBucket];
+            const displaced = items[target];
+            const displacedBucket = buckets[target];
+            items[target] = item;
+            ++nexts[itemBucket];
+            item = displaced;
+            itemBucket = displacedBucket;
+          }
+
+          items[nexts[bucket]] = item;
+          ++nexts[bucket];
+        }
+      }
+
       for (let bucket = 1; bucket < RADIX; ++bucket) {
         if (counts[bucket] > 1) {
-          push(starts[bucket] - counts[bucket], starts[bucket], depth + 1);
+          push(starts[bucket], starts[bucket] + counts[bucket], depth + 1);
         }
       }
 
@@ -266,7 +289,7 @@ const MAX_ARCS_PER_STATE = MAX_LETTERS + 1;
  * Feeds the ordered sequences to an incremental minimal-automaton builder
  * (Daciuk et al., 2000) and returns the resulting arcs.
  */
-export const insertItems = (items: Int32Array, wordBytes: Uint8Array, wordOffsets: Int32Array) => {
+export const insertItems = (items: Int32Array, wordBytes: Uint8Array, wordOffsets: Int32Array): GaddagArcs => {
   const builder = new Builder();
   const sequence = new Uint8Array(MAX_DEPTH);
 
@@ -370,7 +393,7 @@ class Builder {
     this.previousLength = length;
   }
 
-  public finish() {
+  public finish(): GaddagArcs {
     for (let depth = this.previousLength; depth > 0; --depth) {
       this.freeze(depth);
     }

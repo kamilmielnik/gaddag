@@ -12,6 +12,8 @@
 
 - [Alphabet](interfaces/Alphabet.md)
 - [EncodedWords](interfaces/EncodedWords.md)
+- [GaddagArcs](interfaces/GaddagArcs.md)
+- [WordListScan](interfaces/WordListScan.md)
 
 ## Variables
 
@@ -23,3 +25,11 @@
 - [MAX\_WORD\_LENGTH](variables/MAX_WORD_LENGTH.md)
 - [MAX\_WORDS](variables/MAX_WORDS.md)
 - [SEPARATOR](variables/SEPARATOR.md)
+
+## Functions
+
+- [encodeWords](functions/encodeWords.md)
+- [generateItems](functions/generateItems.md)
+- [insertItems](functions/insertItems.md)
+- [scanWords](functions/scanWords.md)
+- [sortItems](functions/sortItems.md)

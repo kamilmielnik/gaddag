@@ -33,7 +33,8 @@
         "types": "./build/cjs/index.d.ts",
         "default": "./build/cjs/index.js"
       }
-    }
+    },
+    "./package.json": "./package.json"
   },
   "license": "MIT",
   "author": {
@@ -75,7 +76,6 @@
     "test:watch": "bun test --watch"
   },
   "devDependencies": {
-    "7zip-bin": "^5.2.0",
     "@types/bun": "^1.3.14",
     "np": "^12.0.1",
     "oxfmt": "^0.62.0",

@@ -154,6 +154,15 @@ describe('Gaddag', () => {
       expect(gaddag.getArc(leaf, a)).toBe(0);
     });
 
+    it('returns 0 from the root for letters without an arc or outside the alphabet', () => {
+      const gaddag = Gaddag.fromArray(['ab']);
+
+      expect(gaddag.getArc(gaddag.rootRef, SEPARATOR)).toBe(0);
+      expect(gaddag.getArc(gaddag.rootRef, 63)).toBe(0);
+      expect(gaddag.getArc(gaddag.rootRef, 999)).toBe(0);
+      expect(gaddag.getArc(gaddag.rootRef, -1)).toBe(0);
+    });
+
     it('stops scanning early thanks to letter-sorted arcs', () => {
       const gaddag = Gaddag.fromArray(['ab', 'db']);
       const b = gaddag.getLetter('b'.charCodeAt(0));
@@ -208,11 +217,10 @@ describe('Gaddag', () => {
   });
 
   describe('charCodes', () => {
-    it('lists the alphabet in ascending code-point order', () => {
+    it('lists the alphabet in ascending code-unit order', () => {
       const gaddag = Gaddag.fromArray(['cab', 'żab']);
       const charCodes = [...gaddag.charCodes];
 
-      expect(charCodes).toEqual([...charCodes].sort((a, b) => a - b));
       expect(charCodes.map((code) => String.fromCharCode(code))).toEqual(['a', 'b', 'c', 'ż']);
 
       for (let index = 0; index < charCodes.length; ++index) {

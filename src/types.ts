@@ -5,10 +5,27 @@ export interface Alphabet {
   letterByCharCode: Int32Array;
 }
 
+/** {@link Alphabet} of a word list plus the sizes of the words a Gaddag keeps (non-empty, within length limits). */
+export interface WordListScan extends Alphabet {
+  /** Total letters across kept words — one GADDAG sequence per letter. */
+  itemsCount: number;
+  /** Number of kept words. */
+  wordsCount: number;
+}
+
 /** A word list flattened into letter indices: word `i` spans `wordBytes[wordOffsets[i]..wordOffsets[i + 1])`. */
 export interface EncodedWords {
+  /** Total letters across kept words — one GADDAG sequence per letter. */
   itemsCount: number;
   wordBytes: Uint8Array;
   wordOffsets: Int32Array;
+  /** Number of kept words. */
   wordsCount: number;
+}
+
+/** Arcs of a built automaton, as consumed by the `Gaddag` constructor. */
+export interface GaddagArcs {
+  arcLabels: Uint8Array;
+  arcTargets: Int32Array;
+  rootRef: number;
 }
