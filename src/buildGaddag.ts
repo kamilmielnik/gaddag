@@ -24,17 +24,18 @@ export const buildAlphabet = (words: string[]): Alphabet => {
   }
 
   const charCodes = Int32Array.from([...codes].sort((a, b) => a - b));
-  const letterByCharCode = new Map<number, number>();
+  const maxCharCode = charCodes.length === 0 ? -1 : charCodes[charCodes.length - 1];
+  const letterByCharCode = new Int32Array(maxCharCode + 1);
 
   for (let index = 0; index < charCodes.length; ++index) {
-    letterByCharCode.set(charCodes[index], index + 1);
+    letterByCharCode[charCodes[index]] = index + 1;
   }
 
   return { charCodes, letterByCharCode };
 };
 
 /** Flattens a word list into letter indices. */
-export const encodeWords = (words: string[], letterByCharCode: Map<number, number>): EncodedWords => {
+export const encodeWords = (words: string[], letterByCharCode: Int32Array): EncodedWords => {
   let totalLength = 0;
   let wordsCount = 0;
 
@@ -60,7 +61,7 @@ export const encodeWords = (words: string[], letterByCharCode: Map<number, numbe
     wordOffsets[wordIndex] = offset;
 
     for (let index = 0; index < word.length; ++index) {
-      wordBytes[offset] = letterByCharCode.get(word.charCodeAt(index))!;
+      wordBytes[offset] = letterByCharCode[word.charCodeAt(index)];
       ++offset;
     }
 

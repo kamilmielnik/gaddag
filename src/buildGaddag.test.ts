@@ -98,7 +98,7 @@ describe('Gaddag.fromArray', () => {
   it('throws when given too many words', () => {
     const words = new Array<string>(MAX_WORDS);
 
-    expect(() => Gaddag.fromArray(words)).toThrow('Gaddag supports up to 33M words');
+    expect(() => Gaddag.fromArray(words)).toThrow(`Gaddag supports up to ${MAX_WORDS - 1} words, got ${MAX_WORDS}`);
   });
 
   it('applies the word count limit only at or above MAX_WORDS', () => {

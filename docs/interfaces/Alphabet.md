@@ -22,6 +22,8 @@ Defined in: [types.ts:3](https://github.com/kamilmielnik/gaddag/blob/master/src/
 
 ### letterByCharCode
 
-> **letterByCharCode**: `Map`\<`number`, `number`\>
+> **letterByCharCode**: `Int32Array`
 
-Defined in: [types.ts:4](https://github.com/kamilmielnik/gaddag/blob/master/src/types.ts#L4)
+Defined in: [types.ts:5](https://github.com/kamilmielnik/gaddag/blob/master/src/types.ts#L5)
+
+Letter index of each code point, 0 when the code point is not in the alphabet.

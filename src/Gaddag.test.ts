@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 
-import { LAST_ARC_FLAG, LETTER_MASK, MAX_LETTERS, SEPARATOR } from './constants.ts';
+import { HEADER_BYTES, LAST_ARC_FLAG, LETTER_MASK, MAX_LETTERS, SEPARATOR } from './constants.ts';
 import { Gaddag } from './Gaddag.ts';
 
 const WORDS = [
@@ -184,6 +184,13 @@ describe('Gaddag', () => {
       expect(gaddag.getLetter(-1)).toBe(-1);
       expect(gaddag.getLetter(0x10ffff)).toBe(-1);
     });
+
+    it('returns -1 for non-integer inputs', () => {
+      const gaddag = Gaddag.fromArray(['bac']);
+
+      expect(gaddag.getLetter(97.5)).toBe(-1);
+      expect(gaddag.getLetter(Number.NaN)).toBe(-1);
+    });
   });
 
   describe('arcsCount', () => {
@@ -301,6 +308,34 @@ describe('Gaddag', () => {
       const bytes = Gaddag.fromArray(WORDS).serialize();
       new Int32Array(bytes.buffer, 0, 4)[3] = -1;
       expect(() => Gaddag.deserialize(bytes)).toThrow('Invalid Gaddag data');
+    });
+
+    it('rejects data with a char code above the UTF-16 range', () => {
+      // An unchecked huge char code would make the constructor allocate
+      // a proportionally huge code-point table from a tiny input.
+      const bytes = Gaddag.fromArray(WORDS).serialize();
+      new Int32Array(bytes.buffer, HEADER_BYTES, 1)[0] = 100_000_000;
+      expect(() => Gaddag.deserialize(bytes)).toThrow('Invalid Gaddag data');
+    });
+
+    it('rejects data with a negative char code', () => {
+      const bytes = Gaddag.fromArray(WORDS).serialize();
+      new Int32Array(bytes.buffer, HEADER_BYTES, 1)[0] = -1;
+      expect(() => Gaddag.deserialize(bytes)).toThrow('Invalid Gaddag data');
+    });
+
+    it('rejects data with non-ascending char codes', () => {
+      const bytes = Gaddag.fromArray(WORDS).serialize();
+      const charCodes = new Int32Array(bytes.buffer, HEADER_BYTES, 2);
+      [charCodes[0], charCodes[1]] = [charCodes[1], charCodes[0]];
+      expect(() => Gaddag.deserialize(bytes)).toThrow('Invalid Gaddag data');
+    });
+
+    it('rejects data with trailing bytes', () => {
+      const bytes = Gaddag.fromArray(WORDS).serialize();
+      const padded = new Uint8Array(bytes.length + 4);
+      padded.set(bytes);
+      expect(() => Gaddag.deserialize(padded)).toThrow('Invalid Gaddag data');
     });
 
     it('rejects data with more letters than the alphabet supports', () => {

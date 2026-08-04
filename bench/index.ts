@@ -3,6 +3,7 @@ import { existsSync, statSync } from 'node:fs';
 import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 
 import { path7za } from '7zip-bin';
@@ -75,19 +76,12 @@ const main = async () => {
   }
 
   console.log('Rendering charts...');
-  const chartsDirPath = new URL('.', CHARTS_DIR).pathname;
-  await mkdir(chartsDirPath, { recursive: true });
-  await writeFile(new URL('fast.svg', CHARTS_DIR).pathname, renderChart(FAST_OPERATIONS, dictionaries, fastResults));
+  await mkdir(fileURLToPath(CHARTS_DIR), { recursive: true });
+  await writeFile(new URL('fast.svg', CHARTS_DIR), renderChart(FAST_OPERATIONS, dictionaries, fastResults));
+  await writeFile(new URL('fromArray.svg', CHARTS_DIR), renderChart(BUILD_OPERATIONS, dictionaries, slowResults));
+  await writeFile(new URL('serialize.svg', CHARTS_DIR), renderChart(SERIALIZE_OPERATIONS, dictionaries, slowResults));
   await writeFile(
-    new URL('fromArray.svg', CHARTS_DIR).pathname,
-    renderChart(BUILD_OPERATIONS, dictionaries, slowResults),
-  );
-  await writeFile(
-    new URL('serialize.svg', CHARTS_DIR).pathname,
-    renderChart(SERIALIZE_OPERATIONS, dictionaries, slowResults),
-  );
-  await writeFile(
-    new URL('deserialize.svg', CHARTS_DIR).pathname,
+    new URL('deserialize.svg', CHARTS_DIR),
     renderChart(DESERIALIZE_OPERATIONS, dictionaries, slowResults),
   );
 
@@ -138,7 +132,7 @@ const loadDictionaries = async (): Promise<Dictionary[]> => {
 };
 
 const ensureTextDictionary = async (url: string, fileName: string): Promise<string> => {
-  const path = new URL(fileName, DICT_DIR).pathname;
+  const path = fileURLToPath(new URL(fileName, DICT_DIR));
   if (!existsSync(path)) {
     console.log(`  Downloading ${url}...`);
     await downloadTo(url, path);
@@ -157,7 +151,6 @@ const downloadTo = async (url: string, destPath: string): Promise<void> => {
 const readWords = async (path: string): Promise<string[]> => {
   const raw = await readFile(path, 'utf8');
   const lines = raw.split(/\r?\n/);
-  if (!raw.endsWith('\n') && lines.length > 0) lines.pop();
   return lines.map((line) => line.trim()).filter((line) => /^\p{L}+$/u.test(line));
 };
 
@@ -201,7 +194,7 @@ const findMissingWord = (dict: Dictionary): string => {
 };
 
 const runSlow = async (dict: Dictionary): Promise<Map<string, number>> => {
-  const buildBench = new Bench({ iterations: 2, time: 0, warmup: false });
+  const buildBench = new Bench({ iterations: 5, time: 0, warmup: true, warmupIterations: 1, warmupTime: 0 });
   buildBench.add('Gaddag.fromArray', () => {
     Gaddag.fromArray(dict.words);
   });
@@ -351,18 +344,21 @@ const measureSizes = async (dictionaries: Dictionary[]): Promise<Map<string, Siz
   const results = new Map<string, SizeRow>();
   const tmpDir = await mkdtemp(join(tmpdir(), 'gaddag-size-'));
 
-  for (const dict of dictionaries) {
-    console.log(`  Measuring ${dict.name}...`);
-    const raw = statSync(dict.path).size;
-    const serializedPath = join(tmpDir, `${dict.local}.gaddag`);
-    await writeFile(serializedPath, dict.serialized);
-    const serialized = statSync(serializedPath).size;
-    const raw7z = await compressTo7z(dict.path, join(tmpDir, `${dict.local}.7z`));
-    const serialized7z = await compressTo7z(serializedPath, join(tmpDir, `${dict.local}.gaddag.7z`));
-    results.set(dict.lang, { raw, serialized, raw7z, serialized7z });
+  try {
+    for (const dict of dictionaries) {
+      console.log(`  Measuring ${dict.name}...`);
+      const raw = statSync(dict.path).size;
+      const serializedPath = join(tmpDir, `${dict.local}.gaddag`);
+      await writeFile(serializedPath, dict.serialized);
+      const serialized = statSync(serializedPath).size;
+      const raw7z = await compressTo7z(dict.path, join(tmpDir, `${dict.local}.7z`));
+      const serialized7z = await compressTo7z(serializedPath, join(tmpDir, `${dict.local}.gaddag.7z`));
+      results.set(dict.lang, { raw, serialized, raw7z, serialized7z });
+    }
+  } finally {
+    await rm(tmpDir, { recursive: true, force: true });
   }
 
-  await rm(tmpDir, { recursive: true, force: true });
   return results;
 };
 
@@ -402,7 +398,7 @@ const formatSizeTable = (dictionaries: Dictionary[], sizes: Map<string, SizeRow>
     `| Name | ${dictionaries.map((d) => `[${d.name}](${d.nameUrl})`).join(' | ')} |`,
     `| Source | ${dictionaries.map((d) => `[Download](${d.sourceUrl})`).join(' | ')} |`,
     `| Words count | ${dictionaries.map((d) => formatBytes(d.words.length)).join(' | ')} |`,
-    `| Arcs count | ${dictionaries.map((d) => formatBytes(d.gaddag.arcsCount)).join(' | ')} |`,
+    `| Arcs count | ${dictionaries.map((d) => formatBytes(d.gaddag.arcsCount - 1)).join(' | ')} |`,
     `| Word list size [B] | ${cellRow((c) => formatBytes(c.raw))} |`,
     `| Serialized GADDAG size [B] | ${cellRow((c) => formatDelta(c.serialized, c.raw))} |`,
     `| Word list size (${sevenZ}) [B] | ${cellRow((c) => formatDelta(c.raw7z, c.raw))} |`,

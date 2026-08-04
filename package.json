@@ -19,14 +19,20 @@
     "node": ">=22"
   },
   "type": "module",
+  "sideEffects": false,
   "main": "./build/cjs/index.js",
   "module": "./build/esm/index.js",
   "types": "./build/esm/index.d.ts",
   "exports": {
     ".": {
-      "types": "./build/esm/index.d.ts",
-      "import": "./build/esm/index.js",
-      "require": "./build/cjs/index.js"
+      "import": {
+        "types": "./build/esm/index.d.ts",
+        "default": "./build/esm/index.js"
+      },
+      "require": {
+        "types": "./build/cjs/index.d.ts",
+        "default": "./build/cjs/index.js"
+      }
     }
   },
   "license": "MIT",
@@ -62,7 +68,7 @@
     "format:fix": "oxfmt --write './src/**/*.{js,ts}' './bench/**/*.{js,ts}'",
     "postbuild": "bun run build:docs",
     "prebuild": "bun run clean",
-    "prerelease": "bun run test && bun run build && bun run build:docs",
+    "prerelease": "bun run test && bun run build",
     "release": "np",
     "test": "bun test --coverage",
     "test:debug": "bun --inspect-brk test",

@@ -1,6 +1,9 @@
 import { buildAlphabet, encodeWords, generateItems, insertItems, sortItems } from './buildGaddag.ts';
 import { HEADER_BYTES, LAST_ARC_FLAG, LETTER_MASK, MAGIC, MAX_LETTERS, MAX_WORDS, SEPARATOR } from './constants.ts';
 
+/** Char codes are UTF-16 code units, so serialized alphabets cannot exceed this. */
+const MAX_CHAR_CODE = 0xffff;
+
 /**
  * A GADDAG (Gordon, 1994) stored as flat typed arrays for speed and compact serialization.
  *
@@ -41,7 +44,7 @@ export class Gaddag {
    */
   public static fromArray(words: string[]): Gaddag {
     if (words.length >= MAX_WORDS) {
-      throw new Error('Gaddag supports up to 33M words');
+      throw new Error(`Gaddag supports up to ${MAX_WORDS - 1} words, got ${words.length}`);
     }
 
     const { charCodes, letterByCharCode } = buildAlphabet(words);
@@ -55,8 +58,12 @@ export class Gaddag {
   /**
    * Creates a {@link Gaddag} by deserializing the output of {@link Gaddag.serialize}.
    *
-   * Throws when the data was not written by a compatible version, or is truncated
-   * or corrupted in a way that is detectable in constant time.
+   * Zero-copy: when `bytes` is 4-byte aligned, the returned Gaddag reads from the
+   * given buffer directly — do not mutate it afterwards.
+   *
+   * Throws when the data was not written by a compatible version, is not exactly
+   * the serialized length, or is corrupted in a way that is detectable in
+   * constant-bounded time.
    */
   public static deserialize(bytes: Uint8Array): Gaddag {
     // Note: an explicit copy (not .slice()) — Buffer.prototype.slice returns a
@@ -80,12 +87,27 @@ export class Gaddag {
       arcCount < 1 ||
       rootRef < 0 ||
       rootRef >>> 1 >= arcCount ||
-      aligned.byteLength < expectedByteLength
+      aligned.byteLength !== expectedByteLength
     ) {
       throw new Error('Invalid Gaddag data');
     }
 
     const charCodes = new Int32Array(aligned.buffer, aligned.byteOffset + HEADER_BYTES, letterCount);
+
+    // Char codes must be ascending UTF-16 code units — an unchecked huge value
+    // would make the constructor allocate a code-point table of that size.
+    let previousCharCode = -1;
+
+    for (let index = 0; index < letterCount; ++index) {
+      const charCode = charCodes[index];
+
+      if (charCode <= previousCharCode || charCode > MAX_CHAR_CODE) {
+        throw new Error('Invalid Gaddag data');
+      }
+
+      previousCharCode = charCode;
+    }
+
     const arcTargets = new Int32Array(aligned.buffer, aligned.byteOffset + HEADER_BYTES + 4 * letterCount, arcCount);
     const arcLabels = new Uint8Array(
       aligned.buffer,
@@ -103,6 +125,11 @@ export class Gaddag {
     return new Gaddag(arcLabels, arcTargets, rootRef, charCodes);
   }
 
+  /**
+   * Wraps pre-built arrays without any validation — prefer {@link Gaddag.fromArray}
+   * and {@link Gaddag.deserialize}. Lookups on invalid arrays terminate but
+   * return incorrect results.
+   */
   constructor(arcLabels: Uint8Array, arcTargets: Int32Array, rootRef: number, charCodes: Int32Array) {
     this.arcLabels = arcLabels;
     this.arcTargets = arcTargets;
@@ -138,6 +165,11 @@ export class Gaddag {
     }
   }
 
+  /**
+   * Serializes the automaton into the compact binary format read by
+   * {@link Gaddag.deserialize}. The returned bytes are freshly allocated
+   * and 4-byte aligned.
+   */
   public serialize(): Uint8Array {
     const letterCount = this.charCodes.length;
     const arcCount = this.arcTargets.length;
@@ -153,6 +185,7 @@ export class Gaddag {
     return bytes;
   }
 
+  /** Returns whether `word` is in the dictionary. The empty string never is. */
   public has(word: string): boolean {
     if (word.length === 0) {
       return false;
@@ -161,6 +194,10 @@ export class Gaddag {
     return (this.findReversedRef(word) & 1) === 1;
   }
 
+  /**
+   * Returns whether any word in the dictionary starts with `prefix`.
+   * The empty prefix matches exactly when the dictionary is non-empty.
+   */
   public hasPrefix(prefix: string): boolean {
     if (prefix.length === 0) {
       return this.rootRef !== 0;
@@ -230,10 +267,11 @@ export class Gaddag {
     return 0;
   }
 
-  /** Maps a code point to its letter index, or -1 when the character is not in the alphabet. */
+  /** Maps a code point to its letter index, or -1 when `charCode` is not an integer or not in the alphabet. */
   public getLetter(charCode: number): number {
     const letters = this.lettersByCharCode;
-    const letter = charCode >= 0 && charCode < letters.length ? letters[charCode] : 0;
+    // A non-integer index reads `undefined` from the typed array.
+    const letter = charCode >= 0 && charCode < letters.length ? (letters[charCode] ?? 0) : 0;
     return letter === 0 ? -1 : letter;
   }
 
