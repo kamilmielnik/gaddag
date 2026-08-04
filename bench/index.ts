@@ -242,10 +242,13 @@ const runSlow = async (dict: Dictionary): Promise<Map<string, number>> => {
 const collectResults = (bench: Bench): Map<string, number> => {
   const results = new Map<string, number>();
   for (const task of bench.tasks) {
-    if (!task.result || task.result.error) {
-      throw new Error(`Benchmark "${task.name}" failed`, { cause: task.result?.error });
+    const { result } = task;
+    if (result?.state !== 'completed') {
+      throw new Error(`Benchmark "${task.name}" failed`, {
+        cause: result?.state === 'errored' ? result.error : result?.state,
+      });
     }
-    results.set(task.name, task.result.throughput.mean);
+    results.set(task.name, result.throughput.mean);
   }
   return results;
 };
@@ -356,12 +359,15 @@ const formatHz = (hz: number): string => {
   return hz.toFixed(2);
 };
 
+// Axis ticks land on fifths of a 1/2/5 × 10^n maximum, so a tick like 1.2M must
+// keep its decimal — rounding would label both 1.2M and 1.6M gridlines "1M"/"2M".
 const formatHzAxis = (hz: number): string => {
-  if (hz === 0) return '0';
-  if (hz >= 1_000_000) return `${Math.round(hz / 1_000_000)}M`;
-  if (hz >= 1_000) return `${Math.round(hz / 1_000)}k`;
-  return `${Math.round(hz)}`;
+  if (hz >= 1_000_000) return `${formatAxisValue(hz / 1_000_000)}M`;
+  if (hz >= 1_000) return `${formatAxisValue(hz / 1_000)}k`;
+  return formatAxisValue(hz);
 };
+
+const formatAxisValue = (value: number): string => (Number.isInteger(value) ? `${value}` : value.toFixed(1));
 
 const escapeXml = (s: string): string =>
   s.replace(/[<>&"]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' })[c] ?? c);
