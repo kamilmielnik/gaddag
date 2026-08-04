@@ -128,14 +128,25 @@ export class Gaddag {
       throw new Error('Invalid Gaddag data');
     }
 
-    // A state is frozen only once all of its children are, so every arc targets a
-    // state that begins at a lower arc index. Enforcing that rejects out-of-range
-    // and negative targets along with cycles, which is what leaves every walk of
-    // the automaton — this class's own, and any a caller writes — finite.
+    // Every arc of a state targets a state that begins before that state's first
+    // arc — the builder freezes a state only once all of its children are. Bounding
+    // a target by its own arc index instead would admit a state's later arc looping
+    // back into the state, a cycle that makes enumeration run forever; so the bound
+    // tracks each state's first arc (states run until LAST_ARC_FLAG). This also
+    // rejects out-of-range, negative, and out-of-alphabet arcs, which is what leaves
+    // every walk of the automaton — this class's own, and any a caller writes — finite.
     if (!trusted) {
+      let stateStart = 1;
+
       for (let index = 1; index < arcCount; ++index) {
-        if (arcTargets[index] >>> 1 >= index) {
+        const label = arcLabels[index];
+
+        if (arcTargets[index] >>> 1 >= stateStart || (label & LETTER_MASK) > letterCount) {
           throw new Error('Invalid Gaddag data');
+        }
+
+        if (label >= LAST_ARC_FLAG) {
+          stateStart = index + 1;
         }
       }
     }

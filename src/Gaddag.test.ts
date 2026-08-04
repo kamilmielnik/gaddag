@@ -8,6 +8,11 @@ const arcTargetsOf = (bytes: Uint8Array): Int32Array => {
   return new Int32Array(bytes.buffer, HEADER_BYTES + 4 * letterCount, arcCount);
 };
 
+const arcLabelsOf = (bytes: Uint8Array): Uint8Array => {
+  const [, letterCount, arcCount] = new Int32Array(bytes.buffer, 0, 4);
+  return new Uint8Array(bytes.buffer, HEADER_BYTES + 4 * (letterCount + arcCount), arcCount);
+};
+
 const WORDS = [
   'a',
   'ab',
@@ -395,6 +400,26 @@ describe('Gaddag', () => {
     it('rejects data whose arc target is negative', () => {
       const bytes = Gaddag.fromArray(WORDS).serialize();
       arcTargetsOf(bytes)[1] = -1;
+      expect(() => Gaddag.deserialize(bytes)).toThrow('Invalid Gaddag data');
+    });
+
+    it('rejects a cycle formed by a state arc looping back into its own state', () => {
+      // Point the root's second arc at the root's own first arc. The target begins
+      // before this arc's index, so a per-arc bound would accept it — but it begins
+      // inside this arc's state, which is a cycle that makes enumeration loop forever.
+      const gaddag = Gaddag.fromArray(WORDS);
+      const bytes = gaddag.serialize();
+      const rootFirstArc = gaddag.rootRef >>> 1;
+      arcTargetsOf(bytes)[rootFirstArc + 1] = rootFirstArc << 1;
+      expect(() => Gaddag.deserialize(bytes)).toThrow('Invalid Gaddag data');
+    });
+
+    it('rejects data with an arc letter outside the alphabet', () => {
+      // An out-of-alphabet arc letter has no char code, so enumerating it would read
+      // past charCodes and spell a word from a missing letter.
+      const bytes = Gaddag.fromArray(WORDS).serialize();
+      const labels = arcLabelsOf(bytes);
+      labels[1] = (labels[1] & LAST_ARC_FLAG) | MAX_LETTERS;
       expect(() => Gaddag.deserialize(bytes)).toThrow('Invalid Gaddag data');
     });
 
