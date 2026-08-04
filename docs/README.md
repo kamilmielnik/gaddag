@@ -11,6 +11,7 @@
 ## Interfaces
 
 - [Alphabet](interfaces/Alphabet.md)
+- [DeserializeOptions](interfaces/DeserializeOptions.md)
 - [EncodedWords](interfaces/EncodedWords.md)
 - [GaddagArcs](interfaces/GaddagArcs.md)
 - [WordListScan](interfaces/WordListScan.md)

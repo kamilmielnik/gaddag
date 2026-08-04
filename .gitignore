@@ -1,4 +1,5 @@
-build/
+.claude/settings.local.json
 bench/dictionaries/
+build/
 coverage/
 node_modules/

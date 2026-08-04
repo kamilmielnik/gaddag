@@ -6,7 +6,7 @@
 
 # Class: Gaddag
 
-Defined in: [Gaddag.ts:19](https://github.com/kamilmielnik/gaddag/blob/master/src/Gaddag.ts#L19)
+Defined in: [Gaddag.ts:20](https://github.com/kamilmielnik/gaddag/blob/master/src/Gaddag.ts#L20)
 
 A GADDAG (Gordon, 1994) stored as flat typed arrays for speed and compact serialization.
 
@@ -25,7 +25,7 @@ Arcs of a state are contiguous and sorted by letter; the last one is marked with
 
 > **new Gaddag**(`arcLabels`, `arcTargets`, `rootRef`, `charCodes`): `Gaddag`
 
-Defined in: [Gaddag.ts:136](https://github.com/kamilmielnik/gaddag/blob/master/src/Gaddag.ts#L136)
+Defined in: [Gaddag.ts:151](https://github.com/kamilmielnik/gaddag/blob/master/src/Gaddag.ts#L151)
 
 Wraps pre-built arrays without any validation — prefer [Gaddag.fromArray](#fromarray)
 and [Gaddag.deserialize](#deserialize). Lookups on invalid arrays terminate but
@@ -59,7 +59,7 @@ return incorrect results.
 
 > `readonly` **arcLabels**: `Uint8Array`
 
-Defined in: [Gaddag.ts:21](https://github.com/kamilmielnik/gaddag/blob/master/src/Gaddag.ts#L21)
+Defined in: [Gaddag.ts:22](https://github.com/kamilmielnik/gaddag/blob/master/src/Gaddag.ts#L22)
 
 Arc labels: letter index | LAST_ARC_FLAG. Index 0 is an unused sentinel.
 
@@ -69,7 +69,7 @@ Arc labels: letter index | LAST_ARC_FLAG. Index 0 is an unused sentinel.
 
 > `readonly` **arcTargets**: `Int32Array`
 
-Defined in: [Gaddag.ts:24](https://github.com/kamilmielnik/gaddag/blob/master/src/Gaddag.ts#L24)
+Defined in: [Gaddag.ts:25](https://github.com/kamilmielnik/gaddag/blob/master/src/Gaddag.ts#L25)
 
 Arc targets: encoded state refs. Index 0 is an unused sentinel.
 
@@ -79,7 +79,7 @@ Arc targets: encoded state refs. Index 0 is an unused sentinel.
 
 > `readonly` **charCodes**: `Int32Array`
 
-Defined in: [Gaddag.ts:30](https://github.com/kamilmielnik/gaddag/blob/master/src/Gaddag.ts#L30)
+Defined in: [Gaddag.ts:31](https://github.com/kamilmielnik/gaddag/blob/master/src/Gaddag.ts#L31)
 
 UTF-16 code unit of each letter index (position 0 holds the code unit of letter 1).
 
@@ -89,7 +89,7 @@ UTF-16 code unit of each letter index (position 0 holds the code unit of letter 
 
 > `readonly` **rootRef**: `number`
 
-Defined in: [Gaddag.ts:27](https://github.com/kamilmielnik/gaddag/blob/master/src/Gaddag.ts#L27)
+Defined in: [Gaddag.ts:28](https://github.com/kamilmielnik/gaddag/blob/master/src/Gaddag.ts#L28)
 
 Ref of the root state.
 
@@ -101,7 +101,7 @@ Ref of the root state.
 
 > **get** **arcsCount**(): `number`
 
-Defined in: [Gaddag.ts:292](https://github.com/kamilmielnik/gaddag/blob/master/src/Gaddag.ts#L292)
+Defined in: [Gaddag.ts:307](https://github.com/kamilmielnik/gaddag/blob/master/src/Gaddag.ts#L307)
 
 Number of arcs in the automaton — the backing arrays additionally hold an unused sentinel at index 0.
 
@@ -115,7 +115,7 @@ Number of arcs in the automaton — the backing arrays additionally hold an unus
 
 > **getArc**(`ref`, `letter`): `number`
 
-Defined in: [Gaddag.ts:254](https://github.com/kamilmielnik/gaddag/blob/master/src/Gaddag.ts#L254)
+Defined in: [Gaddag.ts:269](https://github.com/kamilmielnik/gaddag/blob/master/src/Gaddag.ts#L269)
 
 Follows the arc labeled with `letter` from the state `ref` points at.
 Returns the target ref, or 0 when there is no such arc.
@@ -145,7 +145,7 @@ the array length, so that corrupted data cannot make it run forever.
 
 > **getLetter**(`charCode`): `number`
 
-Defined in: [Gaddag.ts:284](https://github.com/kamilmielnik/gaddag/blob/master/src/Gaddag.ts#L284)
+Defined in: [Gaddag.ts:299](https://github.com/kamilmielnik/gaddag/blob/master/src/Gaddag.ts#L299)
 
 Maps a UTF-16 code unit to its letter index, or -1 when `charCode` is not an integer or not in the alphabet.
 
@@ -165,7 +165,7 @@ Maps a UTF-16 code unit to its letter index, or -1 when `charCode` is not an int
 
 > **has**(`word`): `boolean`
 
-Defined in: [Gaddag.ts:196](https://github.com/kamilmielnik/gaddag/blob/master/src/Gaddag.ts#L196)
+Defined in: [Gaddag.ts:211](https://github.com/kamilmielnik/gaddag/blob/master/src/Gaddag.ts#L211)
 
 Returns whether `word` is in the dictionary. The empty string never is.
 
@@ -185,7 +185,7 @@ Returns whether `word` is in the dictionary. The empty string never is.
 
 > **hasPrefix**(`prefix`): `boolean`
 
-Defined in: [Gaddag.ts:208](https://github.com/kamilmielnik/gaddag/blob/master/src/Gaddag.ts#L208)
+Defined in: [Gaddag.ts:223](https://github.com/kamilmielnik/gaddag/blob/master/src/Gaddag.ts#L223)
 
 Returns whether any word in the dictionary starts with `prefix`.
 The empty prefix matches exactly when the dictionary is non-empty.
@@ -206,7 +206,7 @@ The empty prefix matches exactly when the dictionary is non-empty.
 
 > **serialize**(): `Uint8Array`
 
-Defined in: [Gaddag.ts:180](https://github.com/kamilmielnik/gaddag/blob/master/src/Gaddag.ts#L180)
+Defined in: [Gaddag.ts:195](https://github.com/kamilmielnik/gaddag/blob/master/src/Gaddag.ts#L195)
 
 Serializes the automaton into the compact binary format read by
 [Gaddag.deserialize](#deserialize). The returned bytes are freshly allocated
@@ -224,9 +224,9 @@ opposite-endian data through its magic-number check.
 
 ### deserialize()
 
-> `static` **deserialize**(`bytes`): `Gaddag`
+> `static` **deserialize**(`bytes`, `options?`): `Gaddag`
 
-Defined in: [Gaddag.ts:68](https://github.com/kamilmielnik/gaddag/blob/master/src/Gaddag.ts#L68)
+Defined in: [Gaddag.ts:70](https://github.com/kamilmielnik/gaddag/blob/master/src/Gaddag.ts#L70)
 
 Creates a Gaddag by deserializing the output of [Gaddag.serialize](#serialize).
 
@@ -234,14 +234,19 @@ Zero-copy: when `bytes` is 4-byte aligned, the returned Gaddag reads from the
 given buffer directly — do not mutate it afterwards.
 
 Throws when the data was not written by a compatible version, is not exactly
-the serialized length, or is corrupted in a way that is detectable in
-constant-bounded time.
+the serialized length, or does not describe a walkable automaton. The
+structural pass that establishes the latter reads every arc once; skip it
+with [DeserializeOptions.trusted](../interfaces/DeserializeOptions.md#trusted) for self-produced data.
 
 #### Parameters
 
 ##### bytes
 
 `Uint8Array`
+
+##### options?
+
+[`DeserializeOptions`](../interfaces/DeserializeOptions.md) = `{}`
 
 #### Returns
 
@@ -253,7 +258,7 @@ constant-bounded time.
 
 > `static` **fromArray**(`words`): `Gaddag`
 
-Defined in: [Gaddag.ts:45](https://github.com/kamilmielnik/gaddag/blob/master/src/Gaddag.ts#L45)
+Defined in: [Gaddag.ts:46](https://github.com/kamilmielnik/gaddag/blob/master/src/Gaddag.ts#L46)
 
 Builds a minimal GADDAG from a word list (any order, duplicates allowed).
 

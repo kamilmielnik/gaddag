@@ -13,9 +13,9 @@
 <line x1="84" y1="24" x2="720" y2="24" stroke="#eee" stroke-width="1"/>
 <text x="76" y="28" text-anchor="end" fill="#555">1k</text>
 <text x="22" y="187" text-anchor="middle" fill="#555" transform="rotate(-90 22 187)">ops / sec</text>
-<rect x="96.0" y="38.2" width="202.0" height="311.8" fill="#3b82f6"><title>🇺🇸 en-US · serialize: 956.45 ops/sec</title></rect>
-<rect x="300.0" y="147.9" width="202.0" height="202.1" fill="#10b981"><title>🇬🇧 en-GB · serialize: 620.09 ops/sec</title></rect>
-<rect x="504.0" y="300.1" width="202.0" height="49.9" fill="#f59e0b"><title>🇵🇱 pl-PL · serialize: 153.03 ops/sec</title></rect>
+<rect x="96.0" y="35.9" width="202.0" height="314.1" fill="#3b82f6"><title>🇺🇸 en-US · serialize: 963.46 ops/sec</title></rect>
+<rect x="300.0" y="147.7" width="202.0" height="202.3" fill="#10b981"><title>🇬🇧 en-GB · serialize: 620.68 ops/sec</title></rect>
+<rect x="504.0" y="300.8" width="202.0" height="49.2" fill="#f59e0b"><title>🇵🇱 pl-PL · serialize: 150.84 ops/sec</title></rect>
 <text x="402" y="376" text-anchor="middle" fill="#111" font-weight="600" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">serialize</text>
 <rect x="744" y="24" width="14" height="14" rx="2" fill="#3b82f6"/>
 <text x="766" y="35" fill="#222" font-weight="600">🇺🇸 en-US</text>

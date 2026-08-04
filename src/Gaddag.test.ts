@@ -3,6 +3,11 @@ import { describe, expect, it } from 'bun:test';
 import { HEADER_BYTES, LAST_ARC_FLAG, LETTER_MASK, MAX_LETTERS, SEPARATOR } from './constants.ts';
 import { Gaddag } from './Gaddag.ts';
 
+const arcTargetsOf = (bytes: Uint8Array): Int32Array => {
+  const [, letterCount, arcCount] = new Int32Array(bytes.buffer, 0, 4);
+  return new Int32Array(bytes.buffer, HEADER_BYTES + 4 * letterCount, arcCount);
+};
+
 const WORDS = [
   'a',
   'ab',
@@ -370,6 +375,42 @@ describe('Gaddag', () => {
       const bytes = Gaddag.fromArray(WORDS).serialize();
       new Int32Array(bytes.buffer, 0, 4)[1] = MAX_LETTERS + 1;
       expect(() => Gaddag.deserialize(bytes)).toThrow('Invalid Gaddag data');
+    });
+
+    it('rejects data whose arc target points at itself', () => {
+      // A self-loop makes the automaton accept an infinite language, and any
+      // traversal following targets never stops.
+      const bytes = Gaddag.fromArray(WORDS).serialize();
+      arcTargetsOf(bytes)[1] = 1 << 1;
+      expect(() => Gaddag.deserialize(bytes)).toThrow('Invalid Gaddag data');
+    });
+
+    it('rejects data whose arc target points at a later arc', () => {
+      const bytes = Gaddag.fromArray(WORDS).serialize();
+      const targets = arcTargetsOf(bytes);
+      targets[1] = targets.length << 1;
+      expect(() => Gaddag.deserialize(bytes)).toThrow('Invalid Gaddag data');
+    });
+
+    it('rejects data whose arc target is negative', () => {
+      const bytes = Gaddag.fromArray(WORDS).serialize();
+      arcTargetsOf(bytes)[1] = -1;
+      expect(() => Gaddag.deserialize(bytes)).toThrow('Invalid Gaddag data');
+    });
+
+    it('accepts the structural pass on every dictionary it writes', () => {
+      for (const words of [WORDS, [], ['a'], ['💚a', '💙b']]) {
+        expect(() => Gaddag.deserialize(Gaddag.fromArray(words).serialize())).not.toThrow();
+      }
+    });
+
+    it('skips the structural pass for trusted data', () => {
+      const bytes = Gaddag.fromArray(WORDS).serialize();
+      const targets = arcTargetsOf(bytes);
+      targets[1] = 1 << 1;
+
+      const deserialized = Gaddag.deserialize(bytes, { trusted: true });
+      expect(deserialized.arcTargets[1]).toBe(1 << 1);
     });
 
     it('rejects data whose last arc does not terminate its state', () => {

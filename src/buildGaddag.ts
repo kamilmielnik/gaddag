@@ -62,10 +62,8 @@ export const scanWords = (words: string[]): WordListScan => {
  * Flattens a word list into letter indices. Expects the same `words` the scan
  * came from — {@link scanWords} is what validates the entries.
  */
-export const encodeWords = (
-  words: string[],
-  { itemsCount, letterByCharCode, wordsCount }: WordListScan,
-): EncodedWords => {
+export const encodeWords = (words: string[], scan: WordListScan): EncodedWords => {
+  const { itemsCount, letterByCharCode, wordsCount } = scan;
   const wordBytes = new Uint8Array(itemsCount);
   const wordOffsets = new Int32Array(wordsCount + 1);
   let offset = 0;

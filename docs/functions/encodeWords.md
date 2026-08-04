@@ -6,7 +6,7 @@
 
 # Function: encodeWords()
 
-> **encodeWords**(`words`, `__namedParameters`): [`EncodedWords`](../interfaces/EncodedWords.md)
+> **encodeWords**(`words`, `scan`): [`EncodedWords`](../interfaces/EncodedWords.md)
 
 Defined in: [buildGaddag.ts:65](https://github.com/kamilmielnik/gaddag/blob/master/src/buildGaddag.ts#L65)
 
@@ -19,7 +19,7 @@ came from — [scanWords](scanWords.md) is what validates the entries.
 
 `string`[]
 
-### \_\_namedParameters
+### scan
 
 [`WordListScan`](../interfaces/WordListScan.md)
 

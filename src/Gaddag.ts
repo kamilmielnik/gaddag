@@ -1,5 +1,6 @@
 import { encodeWords, generateItems, insertItems, scanWords, sortItems } from './buildGaddag.ts';
 import { HEADER_BYTES, LAST_ARC_FLAG, LETTER_MASK, MAGIC, MAX_LETTERS, MAX_WORDS, SEPARATOR } from './constants.ts';
+import { type DeserializeOptions } from './types.ts';
 
 /** Char codes are UTF-16 code units, so serialized alphabets cannot exceed this. */
 const MAX_CHAR_CODE = 0xffff;
@@ -62,10 +63,12 @@ export class Gaddag {
    * given buffer directly — do not mutate it afterwards.
    *
    * Throws when the data was not written by a compatible version, is not exactly
-   * the serialized length, or is corrupted in a way that is detectable in
-   * constant-bounded time.
+   * the serialized length, or does not describe a walkable automaton. The
+   * structural pass that establishes the latter reads every arc once; skip it
+   * with {@link DeserializeOptions.trusted} for self-produced data.
    */
-  public static deserialize(bytes: Uint8Array): Gaddag {
+  public static deserialize(bytes: Uint8Array, options: DeserializeOptions = {}): Gaddag {
+    const { trusted = false } = options;
     // Note: an explicit copy (not .slice()) — Buffer.prototype.slice returns a
     // view that would keep the misaligned byteOffset.
     const aligned = bytes.byteOffset % 4 === 0 ? bytes : new Uint8Array(bytes);
@@ -123,6 +126,18 @@ export class Gaddag {
     // dictionary has no arcs at all — only the unused sentinel at index 0.
     if (arcCount > 1 && arcLabels[arcCount - 1] < LAST_ARC_FLAG) {
       throw new Error('Invalid Gaddag data');
+    }
+
+    // A state is frozen only once all of its children are, so every arc targets a
+    // state that begins at a lower arc index. Enforcing that rejects out-of-range
+    // and negative targets along with cycles, which is what leaves every walk of
+    // the automaton — this class's own, and any a caller writes — finite.
+    if (!trusted) {
+      for (let index = 1; index < arcCount; ++index) {
+        if (arcTargets[index] >>> 1 >= index) {
+          throw new Error('Invalid Gaddag data');
+        }
+      }
     }
 
     return new Gaddag(arcLabels, arcTargets, rootRef, charCodes);

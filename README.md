@@ -22,7 +22,7 @@
 
 - [Highly performant](#performance)
 - No dependencies
-- Backed by flat typed arrays — compact in memory, [near-instant to deserialize](#performance)
+- Backed by flat typed arrays — compact in memory, [milliseconds to deserialize](#performance) (microseconds when the data is [trusted](#deserializing-untrusted-data))
 - Built for [Scrabble Solver](https://github.com/kamilmielnik/scrabble-solver)
 - CJS & ESM compatible
 
@@ -35,6 +35,7 @@ A GADDAG is a minimized automaton that, for every word `w` and every split point
   - [Word API](#word-api)
   - [Arc API](#arc-api)
 - [Limits](#limits)
+- [Deserializing untrusted data](#deserializing-untrusted-data)
 - [Examples](#examples)
   - [Load a dictionary from a file](#load-a-dictionary-from-a-file)
   - [Serialize a GADDAG to a file](#serialize-a-gaddag-to-a-file)
@@ -62,6 +63,7 @@ See full [API Docs](https://github.com/kamilmielnik/gaddag/blob/master/docs/READ
 Good to know:
 
 - a [`Gaddag`](https://github.com/kamilmielnik/gaddag/blob/master/docs/classes/Gaddag.md) is immutable — to change the dictionary, build a new one with [`Gaddag.fromArray`](https://github.com/kamilmielnik/gaddag/blob/master/docs/classes/Gaddag.md#fromarray)
+- [`Gaddag.deserialize`](https://github.com/kamilmielnik/gaddag/blob/master/docs/classes/Gaddag.md#deserialize) checks that the data describes a walkable automaton, reading each arc once; pass `{ trusted: true }` to skip that pass for data you produced yourself — see [Deserializing untrusted data](#deserializing-untrusted-data)
 - immutability is not enforced: the backing typed arrays are exposed directly (and shared with the input of [`Gaddag.deserialize`](https://github.com/kamilmielnik/gaddag/blob/master/docs/classes/Gaddag.md#deserialize) when it is 4-byte aligned) — treat them as read-only, writing to them corrupts the automaton
 - all exports are named (there is no default export)
 - `MAX_LETTERS`, `MAX_WORD_LENGTH`, and `MAX_WORDS` are described in [Limits](#limits)
@@ -127,6 +129,20 @@ Distinct characters (`MAX_LETTERS`) and word length (`MAX_WORD_LENGTH`) are coun
 
 Empty words are skipped; a non-string entry throws. Duplicated words and unsorted input are fine — the same minimal automaton is produced regardless of word order.
 
+# Deserializing untrusted data
+
+`Gaddag.deserialize` rejects data that does not describe a walkable automaton, so following arcs always terminates — `has`, `hasPrefix`, `getArc`, and any traversal you write on top of them. The check reads every arc once, which is the bulk of what deserialization costs; `{ trusted: true }` skips it:
+
+```TypeScript
+const gaddag = Gaddag.deserialize(bytes, { trusted: true }); // only for data you serialized yourself
+```
+
+Skipping the check on data you did not produce is what an attacker needs: a handful of crafted bytes can describe a cycle, which makes the automaton accept an infinite language and sends any code that walks it into an endless loop.
+
+The check is what the [deserialization benchmark](#performance) measures, and it dominates the cost — the rest of deserializing is a few typed-array views over the buffer, so `{ trusted: true }` is roughly three orders of magnitude faster.
+
+Even with the check, the automaton's *size* is still whatever the file says it is. Enumerating every word (as in [Find all words with a given prefix](#find-all-words-with-a-given-prefix)) does work proportional to the number of words encoded, and a crafted file can encode enormous numbers of them from a modest file. Bound the output if the data is not yours.
+
 # Examples
 
 - [Load a dictionary from a file](#load-a-dictionary-from-a-file)
@@ -168,9 +184,13 @@ const buffer = await readFile('dictionary.gaddag');
 const gaddag = Gaddag.deserialize(buffer);
 ```
 
+`Gaddag.deserialize` validates the file's structure. If you wrote the file yourself and want the fastest possible load, see [Deserializing untrusted data](#deserializing-untrusted-data).
+
 ## Find all words with a given prefix
 
 A GADDAG stores `reverse(prefix) + ◇ + suffix` paths, so all words starting with a prefix live behind a single separator arc: follow the reversed prefix, cross `◇`, and collect every suffix.
+
+`collectWords` below recurses as deep as the words are long and returns as many words as the automaton encodes. That is bounded for a dictionary you built or deserialized without `{ trusted: true }` — see [Deserializing untrusted data](#deserializing-untrusted-data).
 
 ```TypeScript
 import { Gaddag, LAST_ARC_FLAG, LETTER_MASK, SEPARATOR } from '@kamilmielnik/gaddag';

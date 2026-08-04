@@ -24,6 +24,8 @@ const DICTIONARIES_MARKER = 'DICTIONARIES';
 const FAST_OPERATIONS = ['has (hit)', 'has (miss)', 'hasPrefix (hit)', 'hasPrefix (miss)', 'getArc'];
 const BUILD_OPERATIONS = ['Gaddag.fromArray'];
 const SERIALIZE_OPERATIONS = ['serialize'];
+// Only the validating default is charted: `{ trusted: true }` is faster by three
+// orders of magnitude, and a linear axis holding both would flatten this one to nothing.
 const DESERIALIZE_OPERATIONS = ['Gaddag.deserialize'];
 
 const SOURCES: DictionarySource[] = [
@@ -58,16 +60,18 @@ const main = async (): Promise<void> => {
 
   console.log('Running fast-ops benchmarks...');
   const fastResults = new Map<string, Map<string, number>>();
-  for (const dict of dictionaries) {
-    console.log(`  ${dict.name}...`);
-    fastResults.set(dict.lang, await runFast(dict, 1000));
+
+  for (const dictionary of dictionaries) {
+    console.log(`  ${dictionary.name}...`);
+    fastResults.set(dictionary.lang, await runFast(dictionary));
   }
 
   console.log('Running slow-ops benchmarks...');
   const slowResults = new Map<string, Map<string, number>>();
-  for (const dict of dictionaries) {
-    console.log(`  ${dict.name}...`);
-    slowResults.set(dict.lang, await runSlow(dict));
+
+  for (const dictionary of dictionaries) {
+    console.log(`  ${dictionary.name}...`);
+    slowResults.set(dictionary.lang, await runSlow(dictionary));
   }
 
   console.log('Rendering charts...');
@@ -103,6 +107,7 @@ const main = async (): Promise<void> => {
 const loadDictionaries = async (): Promise<Dictionary[]> => {
   console.log('Loading dictionaries...');
   const dictionaries: Dictionary[] = [];
+
   for (const source of SOURCES) {
     const path = await ensureTextDictionary(source.sourceUrl, source.local);
     console.log(`  Building gaddag from ${source.name}...`);
@@ -111,24 +116,31 @@ const loadDictionaries = async (): Promise<Dictionary[]> => {
     const serialized = gaddag.serialize();
     dictionaries.push({ ...source, words, gaddag, serialized });
   }
+
   return dictionaries;
 };
 
 const ensureTextDictionary = async (url: string, fileName: string): Promise<string> => {
   const path = fileURLToPath(new URL(fileName, DICT_DIR));
+
   if (!existsSync(path)) {
     console.log(`  Downloading ${url}...`);
     await downloadTo(url, path);
   }
+
   return path;
 };
 
-const downloadTo = async (url: string, destPath: string): Promise<void> => {
+const downloadTo = async (url: string, destinationPath: string): Promise<void> => {
   const response = await fetch(url);
-  if (!response.ok) throw new Error(`Failed to download ${url}: ${response.status}`);
+
+  if (!response.ok) {
+    throw new Error(`Failed to download ${url}: ${response.status}`);
+  }
+
   const buffer = new Uint8Array(await response.arrayBuffer());
-  await mkdir(dirname(destPath), { recursive: true });
-  await writeFile(destPath, buffer);
+  await mkdir(dirname(destinationPath), { recursive: true });
+  await writeFile(destinationPath, buffer);
 };
 
 const readWords = async (path: string): Promise<string[]> => {
@@ -143,14 +155,25 @@ const readWords = async (path: string): Promise<string[]> => {
 const SAMPLE_SIZE = 1024;
 const SAMPLE_MASK = SAMPLE_SIZE - 1;
 
-const runFast = async (dict: Dictionary, time: number): Promise<Map<string, number>> => {
-  const { gaddag } = dict;
-  const present = sampleWords(dict.words, SAMPLE_SIZE);
-  const missing = present.map((word) => findMissingWord(gaddag, word));
-  const prefixes = present.map((word) => word.slice(0, Math.min(3, word.length)));
-  const { arcRefs, arcLetters, arcMask } = sampleArcSteps(gaddag, present);
+const BENCH_TIME = 1000;
 
-  const bench = new Bench({ time });
+const PREFIX_LENGTH = 3;
+
+const runFast = async (dictionary: Dictionary): Promise<Map<string, number>> => {
+  const { gaddag } = dictionary;
+  const presentWords = sampleWords(dictionary.words, SAMPLE_SIZE);
+  const missingWords = presentWords.map((word) => perturb(gaddag, word, (candidate) => gaddag.has(candidate)));
+  // Sampled from the words long enough to fill a prefix, so every prefix measured
+  // is the same length. A shorter one has too few variations to perturb: in a
+  // dictionary this size, every two-letter string is a prefix of something.
+  const longWords = dictionary.words.filter((word) => word.length >= PREFIX_LENGTH);
+  const presentPrefixes = sampleWords(longWords, SAMPLE_SIZE).map((word) => word.slice(0, PREFIX_LENGTH));
+  const missingPrefixes = presentPrefixes.map((prefix) =>
+    perturb(gaddag, prefix, (candidate) => gaddag.hasPrefix(candidate)),
+  );
+  const { arcRefs, arcLetters, arcMask } = sampleArcSteps(gaddag, presentWords);
+
+  const bench = new Bench({ time: BENCH_TIME });
   let hasHitIndex = 0;
   let hasMissIndex = 0;
   let prefixHitIndex = 0;
@@ -159,23 +182,23 @@ const runFast = async (dict: Dictionary, time: number): Promise<Map<string, numb
 
   bench
     .add('has (hit)', () => {
-      gaddag.has(present[hasHitIndex]!);
+      gaddag.has(presentWords[hasHitIndex]);
       hasHitIndex = (hasHitIndex + 1) & SAMPLE_MASK;
     })
     .add('has (miss)', () => {
-      gaddag.has(missing[hasMissIndex]!);
+      gaddag.has(missingWords[hasMissIndex]);
       hasMissIndex = (hasMissIndex + 1) & SAMPLE_MASK;
     })
     .add('hasPrefix (hit)', () => {
-      gaddag.hasPrefix(prefixes[prefixHitIndex]!);
+      gaddag.hasPrefix(presentPrefixes[prefixHitIndex]);
       prefixHitIndex = (prefixHitIndex + 1) & SAMPLE_MASK;
     })
     .add('hasPrefix (miss)', () => {
-      gaddag.hasPrefix(missing[prefixMissIndex]!);
+      gaddag.hasPrefix(missingPrefixes[prefixMissIndex]);
       prefixMissIndex = (prefixMissIndex + 1) & SAMPLE_MASK;
     })
     .add('getArc', () => {
-      gaddag.getArc(arcRefs[arcIndex]!, arcLetters[arcIndex]!);
+      gaddag.getArc(arcRefs[arcIndex], arcLetters[arcIndex]);
       arcIndex = (arcIndex + 1) & arcMask;
     });
 
@@ -184,14 +207,24 @@ const runFast = async (dict: Dictionary, time: number): Promise<Map<string, numb
 };
 
 const sampleWords = (words: string[], count: number): string[] =>
-  Array.from({ length: count }, (_, index) => words[Math.floor((index * words.length) / count)]!);
+  Array.from({ length: count }, (_, index) => words[Math.floor((index * words.length) / count)]);
 
-const findMissingWord = (gaddag: Gaddag, base: string): string => {
-  let candidate = base + base;
-  while (gaddag.has(candidate)) {
-    candidate += base;
+// A miss of the same length as the hit it came from, so the two bars of a chart
+// differ in the answer and not in how much string there was to walk. Lookups
+// consume their input right-to-left, so substituting the leftmost character
+// first leaves the walk as deep as the matching one.
+const perturb = (gaddag: Gaddag, value: string, matches: (candidate: string) => boolean): string => {
+  for (let position = 0; position < value.length; ++position) {
+    for (const charCode of gaddag.charCodes) {
+      const candidate = value.slice(0, position) + String.fromCharCode(charCode) + value.slice(position + 1);
+
+      if (!matches(candidate)) {
+        return candidate;
+      }
+    }
   }
-  return candidate;
+
+  throw new Error(`Every single-character variation of "${value}" is in the dictionary`);
 };
 
 // Every (ref, letter) step of walking the sampled words — the root fast path and
@@ -219,20 +252,28 @@ const sampleArcSteps = (
   return { arcRefs: arcRefs.slice(0, size), arcLetters: arcLetters.slice(0, size), arcMask: size - 1 };
 };
 
-const runSlow = async (dict: Dictionary): Promise<Map<string, number>> => {
-  const buildBench = new Bench({ iterations: 5, time: 0, warmup: true, warmupIterations: 1, warmupTime: 0 });
+const BUILD_ITERATIONS = 5;
+
+const runSlow = async (dictionary: Dictionary): Promise<Map<string, number>> => {
+  const buildBench = new Bench({
+    iterations: BUILD_ITERATIONS,
+    time: 0,
+    warmup: true,
+    warmupIterations: 1,
+    warmupTime: 0,
+  });
   buildBench.add('Gaddag.fromArray', () => {
-    Gaddag.fromArray(dict.words);
+    Gaddag.fromArray(dictionary.words);
   });
   await buildBench.run();
 
-  const serializationBench = new Bench({ time: 1000 });
+  const serializationBench = new Bench({ time: BENCH_TIME });
   serializationBench
     .add('serialize', () => {
-      dict.gaddag.serialize();
+      dictionary.gaddag.serialize();
     })
     .add('Gaddag.deserialize', () => {
-      Gaddag.deserialize(dict.serialized);
+      Gaddag.deserialize(dictionary.serialized);
     });
   await serializationBench.run();
 
@@ -241,147 +282,188 @@ const runSlow = async (dict: Dictionary): Promise<Map<string, number>> => {
 
 const collectResults = (bench: Bench): Map<string, number> => {
   const results = new Map<string, number>();
+
   for (const task of bench.tasks) {
     const { result } = task;
+
     if (result?.state !== 'completed') {
       throw new Error(`Benchmark "${task.name}" failed`, {
         cause: result?.state === 'errored' ? result.error : result?.state,
       });
     }
+
     results.set(task.name, result.throughput.mean);
   }
+
   return results;
 };
 
 const PALETTE = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#14b8a6'];
+
+const WIDTH = 920;
+
+const HEIGHT = 400;
+
+const PADDING = { top: 24, right: 200, bottom: 50, left: 84 };
+
+const GROUP_INNER_PADDING = 12;
+
+const GRIDLINE_COUNT = 5;
+
+const LEGEND_ROW_HEIGHT = 44;
 
 const renderChart = (
   operations: string[],
   dictionaries: Dictionary[],
   results: Map<string, Map<string, number>>,
 ): string => {
-  const W = 920;
-  const H = 400;
-  const padding = { top: 24, right: 200, bottom: 50, left: 84 };
-  const plotW = W - padding.left - padding.right;
-  const plotH = H - padding.top - padding.bottom;
+  const plotWidth = WIDTH - PADDING.left - PADDING.right;
+  const plotHeight = HEIGHT - PADDING.top - PADDING.bottom;
 
-  let max = 0;
-  for (const dict of dictionaries) {
-    for (const op of operations) {
-      const value = results.get(dict.lang)?.get(op) ?? 0;
-      if (value > max) max = value;
+  let maxValue = 0;
+
+  for (const dictionary of dictionaries) {
+    for (const operation of operations) {
+      const value = results.get(dictionary.lang)?.get(operation) ?? 0;
+
+      if (value > maxValue) {
+        maxValue = value;
+      }
     }
   }
 
-  const yMax = niceCeil(max);
-  const groupWidth = plotW / operations.length;
-  const groupInnerPad = 12;
-  const barWidth = (groupWidth - groupInnerPad * 2) / dictionaries.length;
-  const yToPx = (value: number): number => padding.top + plotH - (value / yMax) * plotH;
+  const axisMax = niceCeil(maxValue);
+  const groupWidth = plotWidth / operations.length;
+  const barWidth = (groupWidth - GROUP_INNER_PADDING * 2) / dictionaries.length;
+  const toPixels = (value: number): number => PADDING.top + plotHeight - (value / axisMax) * plotHeight;
 
   const parts: string[] = [];
   parts.push(
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" font-family="-apple-system, Segoe UI, Roboto, sans-serif" font-size="13">`,
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${WIDTH} ${HEIGHT}" font-family="-apple-system, Segoe UI, Roboto, sans-serif" font-size="13">`,
   );
-  parts.push(`<rect width="${W}" height="${H}" fill="white"/>`);
+  parts.push(`<rect width="${WIDTH}" height="${HEIGHT}" fill="white"/>`);
 
-  for (let i = 0; i <= 5; i += 1) {
-    const value = (yMax * i) / 5;
-    const y = yToPx(value);
+  for (let gridline = 0; gridline <= GRIDLINE_COUNT; ++gridline) {
+    const value = (axisMax * gridline) / GRIDLINE_COUNT;
+    const y = toPixels(value);
     parts.push(
-      `<line x1="${padding.left}" y1="${y}" x2="${padding.left + plotW}" y2="${y}" stroke="${i === 0 ? '#666' : '#eee'}" stroke-width="1"/>`,
+      `<line x1="${PADDING.left}" y1="${y}" x2="${PADDING.left + plotWidth}" y2="${y}" stroke="${gridline === 0 ? '#666' : '#eee'}" stroke-width="1"/>`,
     );
     parts.push(
-      `<text x="${padding.left - 8}" y="${y + 4}" text-anchor="end" fill="#555">${formatHzAxis(value)}</text>`,
+      `<text x="${PADDING.left - 8}" y="${y + 4}" text-anchor="end" fill="#555">${formatHertzAxis(value)}</text>`,
     );
   }
 
   parts.push(
-    `<text x="22" y="${padding.top + plotH / 2}" text-anchor="middle" fill="#555" transform="rotate(-90 22 ${padding.top + plotH / 2})">ops / sec</text>`,
+    `<text x="22" y="${PADDING.top + plotHeight / 2}" text-anchor="middle" fill="#555" transform="rotate(-90 22 ${PADDING.top + plotHeight / 2})">ops / sec</text>`,
   );
 
-  operations.forEach((op, opIdx) => {
-    const groupX = padding.left + opIdx * groupWidth;
+  operations.forEach((operation, operationIndex) => {
+    const groupX = PADDING.left + operationIndex * groupWidth;
 
-    dictionaries.forEach((dict, dictIdx) => {
-      const value = results.get(dict.lang)?.get(op) ?? 0;
-      const barH = (value / yMax) * plotH;
-      const x = groupX + groupInnerPad + dictIdx * barWidth;
-      const y = padding.top + plotH - barH;
-      const color = PALETTE[dictIdx % PALETTE.length];
+    dictionaries.forEach((dictionary, dictionaryIndex) => {
+      const value = results.get(dictionary.lang)?.get(operation) ?? 0;
+      const barHeight = (value / axisMax) * plotHeight;
+      const x = groupX + GROUP_INNER_PADDING + dictionaryIndex * barWidth;
+      const y = PADDING.top + plotHeight - barHeight;
+      const color = PALETTE[dictionaryIndex % PALETTE.length];
       parts.push(
-        `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${(barWidth - 2).toFixed(1)}" height="${barH.toFixed(1)}" fill="${color}"><title>${escapeXml(dict.flag)} ${escapeXml(dict.lang)} · ${escapeXml(op)}: ${formatHz(value)} ops/sec</title></rect>`,
+        `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${(barWidth - 2).toFixed(1)}" height="${barHeight.toFixed(1)}" fill="${color}"><title>${escapeXml(dictionary.flag)} ${escapeXml(dictionary.lang)} · ${escapeXml(operation)}: ${formatHertz(value)} ops/sec</title></rect>`,
       );
     });
 
-    const cx = groupX + groupWidth / 2;
+    const centerX = groupX + groupWidth / 2;
     parts.push(
-      `<text x="${cx}" y="${padding.top + plotH + 26}" text-anchor="middle" fill="#111" font-weight="600" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">${escapeXml(op)}</text>`,
+      `<text x="${centerX}" y="${PADDING.top + plotHeight + 26}" text-anchor="middle" fill="#111" font-weight="600" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">${escapeXml(operation)}</text>`,
     );
   });
 
-  const legendX = W - padding.right + 24;
-  let legendY = padding.top;
-  for (const [i, dict] of dictionaries.entries()) {
+  const legendX = WIDTH - PADDING.right + 24;
+  let legendY = PADDING.top;
+
+  for (const [index, dictionary] of dictionaries.entries()) {
     parts.push(
-      `<rect x="${legendX}" y="${legendY}" width="14" height="14" rx="2" fill="${PALETTE[i % PALETTE.length]}"/>`,
+      `<rect x="${legendX}" y="${legendY}" width="14" height="14" rx="2" fill="${PALETTE[index % PALETTE.length]}"/>`,
     );
     parts.push(
-      `<text x="${legendX + 22}" y="${legendY + 11}" fill="#222" font-weight="600">${escapeXml(dict.flag)} ${escapeXml(dict.lang)}</text>`,
+      `<text x="${legendX + 22}" y="${legendY + 11}" fill="#222" font-weight="600">${escapeXml(dictionary.flag)} ${escapeXml(dictionary.lang)}</text>`,
     );
     parts.push(
-      `<text x="${legendX + 22}" y="${legendY + 27}" fill="#666" font-size="11">${escapeXml(dict.name)} · ${formatCount(dict.words.length)} words</text>`,
+      `<text x="${legendX + 22}" y="${legendY + 27}" fill="#666" font-size="11">${escapeXml(dictionary.name)} · ${formatCount(dictionary.words.length)} words</text>`,
     );
-    legendY += 44;
+    legendY += LEGEND_ROW_HEIGHT;
   }
 
   parts.push('</svg>');
   return parts.join('\n');
 };
 
+/** Rounds up to the next 1, 2, 5 or 10 times a power of ten, so gridlines land on readable values. */
 const niceCeil = (value: number): number => {
-  if (value <= 0) return 1;
-  const exponent = Math.floor(Math.log10(value));
-  const base = Math.pow(10, exponent);
+  if (value <= 0) {
+    return 1;
+  }
+
+  const base = Math.pow(10, Math.floor(Math.log10(value)));
   const normalized = value / base;
-  let nice: number;
-  if (normalized <= 1) nice = 1;
-  else if (normalized <= 2) nice = 2;
-  else if (normalized <= 5) nice = 5;
-  else nice = 10;
-  return nice * base;
+
+  if (normalized <= 1) {
+    return base;
+  }
+
+  if (normalized <= 2) {
+    return 2 * base;
+  }
+
+  if (normalized <= 5) {
+    return 5 * base;
+  }
+
+  return 10 * base;
 };
 
-const formatHz = (hz: number): string => {
-  if (hz >= 1_000_000) return `${(hz / 1_000_000).toFixed(2)}M`;
-  if (hz >= 1_000) return `${(hz / 1_000).toFixed(2)}k`;
-  return hz.toFixed(2);
+const formatHertz = (hertz: number): string => {
+  if (hertz >= 1_000_000) {
+    return `${(hertz / 1_000_000).toFixed(2)}M`;
+  }
+
+  if (hertz >= 1_000) {
+    return `${(hertz / 1_000).toFixed(2)}k`;
+  }
+
+  return hertz.toFixed(2);
 };
 
 // Axis ticks land on fifths of a 1/2/5 × 10^n maximum, so a tick like 1.2M must
 // keep its decimal — rounding would label both 1.2M and 1.6M gridlines "1M"/"2M".
-const formatHzAxis = (hz: number): string => {
-  if (hz >= 1_000_000) return `${formatAxisValue(hz / 1_000_000)}M`;
-  if (hz >= 1_000) return `${formatAxisValue(hz / 1_000)}k`;
-  return formatAxisValue(hz);
+const formatHertzAxis = (hertz: number): string => {
+  if (hertz >= 1_000_000) {
+    return `${formatAxisValue(hertz / 1_000_000)}M`;
+  }
+
+  if (hertz >= 1_000) {
+    return `${formatAxisValue(hertz / 1_000)}k`;
+  }
+
+  return formatAxisValue(hertz);
 };
 
 const formatAxisValue = (value: number): string => (Number.isInteger(value) ? `${value}` : value.toFixed(1));
 
-const escapeXml = (s: string): string =>
-  s.replace(/[<>&"]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' })[c] ?? c);
+const XML_ESCAPES: Record<string, string> = { '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' };
+
+const escapeXml = (text: string): string => text.replace(/[<>&"]/g, (character) => XML_ESCAPES[character] ?? character);
 
 const formatDictionaryTable = (dictionaries: Dictionary[]): string => {
   const header =
-    `| Language | ${dictionaries.map((d) => `${d.flag} ${d.lang}`).join(' | ')} |\n` +
+    `| Language | ${dictionaries.map((dictionary) => `${dictionary.flag} ${dictionary.lang}`).join(' | ')} |\n` +
     `| --- | ${dictionaries.map(() => '---').join(' | ')} |`;
 
   const rows = [
-    `| Name | ${dictionaries.map((d) => `[${d.name}](${d.nameUrl})`).join(' | ')} |`,
-    `| Source | ${dictionaries.map((d) => `[Download](${d.sourceUrl})`).join(' | ')} |`,
-    `| Words count | ${dictionaries.map((d) => formatCount(d.words.length)).join(' | ')} |`,
-    `| Arcs count | ${dictionaries.map((d) => formatCount(d.gaddag.arcsCount)).join(' | ')} |`,
+    `| Name | ${dictionaries.map((dictionary) => `[${dictionary.name}](${dictionary.nameUrl})`).join(' | ')} |`,
+    `| Source | ${dictionaries.map((dictionary) => `[Download](${dictionary.sourceUrl})`).join(' | ')} |`,
+    `| Words count | ${dictionaries.map((dictionary) => formatCount(dictionary.words.length)).join(' | ')} |`,
+    `| Arcs count | ${dictionaries.map((dictionary) => formatCount(dictionary.gaddag.arcsCount)).join(' | ')} |`,
   ];
 
   return [header, ...rows].join('\n');
@@ -395,9 +477,11 @@ const replaceBetween = (source: string, marker: string, replacement: string): st
   const open = `<!-- ${marker}:start -->`;
   const close = `<!-- ${marker}:end -->`;
   const pattern = new RegExp(`${escapeRegExp(open)}[\\s\\S]*?${escapeRegExp(close)}`);
+
   if (!pattern.test(source)) {
     throw new Error(`Markers for "${marker}" not found in README`);
   }
+
   // A replacer function, so `$` in the replacement is never a substitution pattern.
   return source.replace(pattern, () => `${open}\n${replacement}\n${close}`);
 };
