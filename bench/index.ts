@@ -148,7 +148,7 @@ const runFast = async (dict: Dictionary, time: number): Promise<Map<string, numb
   const present = sampleWords(dict.words, SAMPLE_SIZE);
   const missing = present.map((word) => findMissingWord(gaddag, word));
   const prefixes = present.map((word) => word.slice(0, Math.min(3, word.length)));
-  const lastLetters = present.map((word) => gaddag.getLetter(word.charCodeAt(word.length - 1)));
+  const { arcRefs, arcLetters, arcMask } = sampleArcSteps(gaddag, present);
 
   const bench = new Bench({ time });
   let hasHitIndex = 0;
@@ -175,8 +175,8 @@ const runFast = async (dict: Dictionary, time: number): Promise<Map<string, numb
       prefixMissIndex = (prefixMissIndex + 1) & SAMPLE_MASK;
     })
     .add('getArc', () => {
-      gaddag.getArc(gaddag.rootRef, lastLetters[arcIndex]!);
-      arcIndex = (arcIndex + 1) & SAMPLE_MASK;
+      gaddag.getArc(arcRefs[arcIndex]!, arcLetters[arcIndex]!);
+      arcIndex = (arcIndex + 1) & arcMask;
     });
 
   await bench.run();
@@ -192,6 +192,31 @@ const findMissingWord = (gaddag: Gaddag, base: string): string => {
     candidate += base;
   }
   return candidate;
+};
+
+// Every (ref, letter) step of walking the sampled words — the root fast path and
+// interior linear scans in the proportion a traversal actually meets them.
+// Truncated to a power of two, so cycling through the pool is a mask.
+const sampleArcSteps = (
+  gaddag: Gaddag,
+  words: string[],
+): { arcRefs: number[]; arcLetters: number[]; arcMask: number } => {
+  const arcRefs: number[] = [];
+  const arcLetters: number[] = [];
+
+  for (const word of words) {
+    let ref = gaddag.rootRef;
+
+    for (let index = word.length - 1; index >= 0 && ref !== 0; --index) {
+      const letter = gaddag.getLetter(word.charCodeAt(index));
+      arcRefs.push(ref);
+      arcLetters.push(letter);
+      ref = gaddag.getArc(ref, letter);
+    }
+  }
+
+  const size = 1 << Math.floor(Math.log2(arcRefs.length));
+  return { arcRefs: arcRefs.slice(0, size), arcLetters: arcLetters.slice(0, size), arcMask: size - 1 };
 };
 
 const runSlow = async (dict: Dictionary): Promise<Map<string, number>> => {
@@ -217,9 +242,10 @@ const runSlow = async (dict: Dictionary): Promise<Map<string, number>> => {
 const collectResults = (bench: Bench): Map<string, number> => {
   const results = new Map<string, number>();
   for (const task of bench.tasks) {
-    if (task.result && !task.result.error) {
-      results.set(task.name, task.result.throughput.mean);
+    if (!task.result || task.result.error) {
+      throw new Error(`Benchmark "${task.name}" failed`, { cause: task.result?.error });
     }
+    results.set(task.name, task.result.throughput.mean);
   }
   return results;
 };
@@ -302,7 +328,7 @@ const renderChart = (
       `<text x="${legendX + 22}" y="${legendY + 11}" fill="#222" font-weight="600">${escapeXml(dict.flag)} ${escapeXml(dict.lang)}</text>`,
     );
     parts.push(
-      `<text x="${legendX + 22}" y="${legendY + 27}" fill="#666" font-size="11">${escapeXml(dict.name)} · ${dict.words.length.toLocaleString()} words</text>`,
+      `<text x="${legendX + 22}" y="${legendY + 27}" fill="#666" font-size="11">${escapeXml(dict.name)} · ${formatCount(dict.words.length)} words</text>`,
     );
     legendY += 44;
   }

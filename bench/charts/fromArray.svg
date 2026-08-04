@@ -13,9 +13,9 @@
 <line x1="84" y1="24" x2="720" y2="24" stroke="#eee" stroke-width="1"/>
 <text x="76" y="28" text-anchor="end" fill="#555">5</text>
 <text x="22" y="187" text-anchor="middle" fill="#555" transform="rotate(-90 22 187)">ops / sec</text>
-<rect x="96.0" y="129.5" width="202.0" height="220.5" fill="#3b82f6"><title>🇺🇸 en-US · Gaddag.fromArray: 3.38 ops/sec</title></rect>
-<rect x="300.0" y="205.2" width="202.0" height="144.8" fill="#10b981"><title>🇬🇧 en-GB · Gaddag.fromArray: 2.22 ops/sec</title></rect>
-<rect x="504.0" y="340.0" width="202.0" height="10.0" fill="#f59e0b"><title>🇵🇱 pl-PL · Gaddag.fromArray: 0.15 ops/sec</title></rect>
+<rect x="96.0" y="124.9" width="202.0" height="225.1" fill="#3b82f6"><title>🇺🇸 en-US · Gaddag.fromArray: 3.45 ops/sec</title></rect>
+<rect x="300.0" y="199.7" width="202.0" height="150.3" fill="#10b981"><title>🇬🇧 en-GB · Gaddag.fromArray: 2.31 ops/sec</title></rect>
+<rect x="504.0" y="339.9" width="202.0" height="10.1" fill="#f59e0b"><title>🇵🇱 pl-PL · Gaddag.fromArray: 0.15 ops/sec</title></rect>
 <text x="402" y="376" text-anchor="middle" fill="#111" font-weight="600" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">Gaddag.fromArray</text>
 <rect x="744" y="24" width="14" height="14" rx="2" fill="#3b82f6"/>
 <text x="766" y="35" fill="#222" font-weight="600">🇺🇸 en-US</text>

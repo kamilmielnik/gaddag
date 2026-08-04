@@ -1,9 +1,15 @@
 import { LAST_ARC_FLAG, LETTER_MASK, MAX_LETTERS, MAX_WORD_LENGTH } from './constants.ts';
 import { type EncodedWords, type GaddagArcs, type WordListScan } from './types.ts';
 
+/** Char codes are UTF-16 code units, so this bounds the alphabet scan table. */
+const CHAR_CODE_COUNT = 0x10000;
+
 /** Collects the alphabet of a word list (ordered by UTF-16 code unit) and counts the kept words and letters. */
 export const scanWords = (words: string[]): WordListScan => {
-  const codes = new Set<number>();
+  // One flag per code unit — far cheaper than a Set at dictionary scale, and
+  // scanning the flags in order yields the sorted alphabet for free.
+  const seen = new Uint8Array(CHAR_CODE_COUNT);
+  let lettersCount = 0;
   let itemsCount = 0;
   let wordsCount = 0;
 
@@ -20,16 +26,29 @@ export const scanWords = (words: string[]): WordListScan => {
     ++wordsCount;
 
     for (let index = 0; index < word.length; ++index) {
-      codes.add(word.charCodeAt(index));
+      const charCode = word.charCodeAt(index);
+
+      if (seen[charCode] === 0) {
+        seen[charCode] = 1;
+        ++lettersCount;
+      }
     }
   }
 
-  if (codes.size > MAX_LETTERS) {
-    throw new Error(`Gaddag supports up to ${MAX_LETTERS} distinct characters, got ${codes.size}`);
+  if (lettersCount > MAX_LETTERS) {
+    throw new Error(`Gaddag supports up to ${MAX_LETTERS} distinct characters, got ${lettersCount}`);
   }
 
-  const charCodes = Int32Array.from([...codes].sort((a, b) => a - b));
-  const maxCharCode = charCodes.length === 0 ? -1 : charCodes[charCodes.length - 1];
+  const charCodes = new Int32Array(lettersCount);
+
+  for (let charCode = 0, letter = 0; letter < lettersCount; ++charCode) {
+    if (seen[charCode] === 1) {
+      charCodes[letter] = charCode;
+      ++letter;
+    }
+  }
+
+  const maxCharCode = lettersCount === 0 ? -1 : charCodes[lettersCount - 1];
   const letterByCharCode = new Int32Array(maxCharCode + 1);
 
   for (let index = 0; index < charCodes.length; ++index) {
@@ -39,7 +58,10 @@ export const scanWords = (words: string[]): WordListScan => {
   return { charCodes, itemsCount, letterByCharCode, wordsCount };
 };
 
-/** Flattens a word list into letter indices. */
+/**
+ * Flattens a word list into letter indices. Expects the same `words` the scan
+ * came from — {@link scanWords} is what validates the entries.
+ */
 export const encodeWords = (
   words: string[],
   { itemsCount, letterByCharCode, wordsCount }: WordListScan,
@@ -65,12 +87,13 @@ export const encodeWords = (
   }
 
   wordOffsets[wordsCount] = offset;
-  return { itemsCount, wordBytes, wordOffsets, wordsCount };
+  return { wordBytes, wordOffsets };
 };
 
 /** Enumerates every `(word, split)` pair as a packed integer — one per GADDAG sequence. */
-export const generateItems = (wordsCount: number, wordOffsets: Int32Array, itemsCount: number): Int32Array => {
-  const items = new Int32Array(itemsCount);
+export const generateItems = (wordOffsets: Int32Array): Int32Array => {
+  const wordsCount = wordOffsets.length - 1;
+  const items = new Int32Array(wordOffsets[wordsCount]);
   let itemIndex = 0;
 
   for (let wordIndex = 0; wordIndex < wordsCount; ++wordIndex) {
@@ -291,7 +314,10 @@ const MAX_ARCS_PER_STATE = MAX_LETTERS + 1;
  */
 export const insertItems = (items: Int32Array, wordBytes: Uint8Array, wordOffsets: Int32Array): GaddagArcs => {
   const builder = new Builder();
-  const sequence = new Uint8Array(MAX_DEPTH);
+  // Two buffers alternate: the builder keeps the last sequence for its common-prefix
+  // comparison, so the next sequence must be built elsewhere.
+  let sequence = new Uint8Array(MAX_DEPTH);
+  let spare = new Uint8Array(MAX_DEPTH);
 
   for (let index = 0; index < items.length; ++index) {
     const item = items[index];
@@ -317,12 +343,18 @@ export const insertItems = (items: Int32Array, wordBytes: Uint8Array, wordOffset
     }
 
     builder.insert(sequence, sequenceLength);
+    const swap = sequence;
+    sequence = spare;
+    spare = swap;
   }
 
   return builder.finish();
 };
 
 const INITIAL_CAPACITY = 1 << 16;
+
+/** Refs pack an arc index into 30 bits (`(index << 1) | final` must stay within Int32). */
+const MAX_ARCS = 1 << 30;
 
 /** FNV-1a hash parameters. */
 const FNV_OFFSET_BASIS = 0x811c9dc5;
@@ -345,7 +377,8 @@ class Builder {
   private readonly pathCounts: Int32Array;
   private readonly pathFinal: Uint8Array;
 
-  private readonly previous: Uint8Array;
+  // The last inserted sequence — a borrowed reference, not a copy.
+  private previous: Uint8Array;
   private previousLength: number;
 
   constructor() {
@@ -358,10 +391,11 @@ class Builder {
     this.pathTargets = new Int32Array(MAX_DEPTH * MAX_ARCS_PER_STATE);
     this.pathCounts = new Int32Array(MAX_DEPTH);
     this.pathFinal = new Uint8Array(MAX_DEPTH);
-    this.previous = new Uint8Array(MAX_DEPTH);
+    this.previous = new Uint8Array(0);
     this.previousLength = 0;
   }
 
+  /** Inserts a sequence, keeping a reference to it until the next call — the caller must not modify it in between. */
   public insert(sequence: Uint8Array, length: number): void {
     const { previous, pathCounts, pathFinal } = this;
     let commonPrefixLength = 0;
@@ -369,10 +403,6 @@ class Builder {
 
     while (commonPrefixLength < maxCommon && sequence[commonPrefixLength] === previous[commonPrefixLength]) {
       ++commonPrefixLength;
-    }
-
-    if (commonPrefixLength === length && commonPrefixLength === this.previousLength) {
-      return; // Duplicate sequence.
     }
 
     for (let depth = this.previousLength; depth > commonPrefixLength; --depth) {
@@ -389,7 +419,7 @@ class Builder {
     }
 
     pathFinal[length] = 1;
-    previous.set(sequence);
+    this.previous = sequence;
     this.previousLength = length;
   }
 
@@ -484,6 +514,9 @@ class Builder {
   }
 
   private appendArcs(base: number, count: number): number {
+    // One line, because no test can build 2^30 arcs and line coverage must stay full.
+    if (this.arcTop + count > MAX_ARCS) throw new Error(`Gaddag supports up to ${MAX_ARCS} arcs`);
+
     if (this.arcTop + count > this.labels.length) {
       const capacity = Math.max(this.labels.length * 2, this.arcTop + count);
       const labels = new Uint8Array(capacity);

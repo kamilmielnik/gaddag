@@ -48,8 +48,8 @@ export class Gaddag {
     }
 
     const scan = scanWords(words);
-    const { itemsCount, wordBytes, wordOffsets, wordsCount } = encodeWords(words, scan);
-    const items = generateItems(wordsCount, wordOffsets, itemsCount);
+    const { wordBytes, wordOffsets } = encodeWords(words, scan);
+    const items = generateItems(wordOffsets);
     sortItems(items, wordBytes, wordOffsets);
     const { arcLabels, arcTargets, rootRef } = insertItems(items, wordBytes, wordOffsets);
     return new Gaddag(arcLabels, arcTargets, rootRef, scan.charCodes);
@@ -98,7 +98,7 @@ export class Gaddag {
     const charCodes = new Int32Array(aligned.buffer, aligned.byteOffset + HEADER_BYTES, letterCount);
 
     // Char codes must be ascending UTF-16 code units — an unchecked huge value
-    // would make the constructor allocate a code-point table of that size.
+    // would make the constructor allocate a code-unit table of that size.
     let previousCharCode = -1;
 
     for (let index = 0; index < letterCount; ++index) {
@@ -172,6 +172,10 @@ export class Gaddag {
    * Serializes the automaton into the compact binary format read by
    * {@link Gaddag.deserialize}. The returned bytes are freshly allocated
    * and 4-byte aligned.
+   *
+   * Multi-byte fields use the platform's native byte order — little-endian on
+   * all mainstream JavaScript engines. {@link Gaddag.deserialize} rejects
+   * opposite-endian data through its magic-number check.
    */
   public serialize(): Uint8Array {
     const letterCount = this.charCodes.length;

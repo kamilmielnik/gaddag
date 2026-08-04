@@ -6,25 +6,17 @@
 
 # Function: generateItems()
 
-> **generateItems**(`wordsCount`, `wordOffsets`, `itemsCount`): `Int32Array`
+> **generateItems**(`wordOffsets`): `Int32Array`
 
-Defined in: [buildGaddag.ts:72](https://github.com/kamilmielnik/gaddag/blob/master/src/buildGaddag.ts#L72)
+Defined in: [buildGaddag.ts:94](https://github.com/kamilmielnik/gaddag/blob/master/src/buildGaddag.ts#L94)
 
 Enumerates every `(word, split)` pair as a packed integer — one per GADDAG sequence.
 
 ## Parameters
 
-### wordsCount
-
-`number`
-
 ### wordOffsets
 
 `Int32Array`
-
-### itemsCount
-
-`number`
 
 ## Returns
 

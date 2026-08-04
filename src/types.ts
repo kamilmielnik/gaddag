@@ -15,12 +15,9 @@ export interface WordListScan extends Alphabet {
 
 /** A word list flattened into letter indices: word `i` spans `wordBytes[wordOffsets[i]..wordOffsets[i + 1])`. */
 export interface EncodedWords {
-  /** Total letters across kept words — one GADDAG sequence per letter. */
-  itemsCount: number;
   wordBytes: Uint8Array;
+  /** One offset per word plus a final entry holding the total letter count. */
   wordOffsets: Int32Array;
-  /** Number of kept words. */
-  wordsCount: number;
 }
 
 /** Arcs of a built automaton, as consumed by the `Gaddag` constructor. */

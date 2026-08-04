@@ -29,3 +29,11 @@ jobs:
       - run: bun run build
         env:
           CI: true
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Smoke test the build under Node
+        run: |
+          node --input-type=module -e "import { Gaddag } from '@kamilmielnik/gaddag'; if (!Gaddag.fromArray(['smoke']).has('smoke')) { throw new Error('ESM smoke test failed'); }"
+          node -e "const { Gaddag } = require('@kamilmielnik/gaddag'); if (!Gaddag.deserialize(Gaddag.fromArray(['smoke']).serialize()).has('smoke')) { throw new Error('CJS smoke test failed'); }"

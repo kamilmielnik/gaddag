@@ -305,6 +305,18 @@ describe('Gaddag', () => {
       expect(() => Gaddag.deserialize(bytes)).toThrow('Invalid Gaddag data');
     });
 
+    it('rejects data with a zero arc count', () => {
+      const bytes = Gaddag.fromArray(WORDS).serialize();
+      new Int32Array(bytes.buffer, 0, 4)[2] = 0;
+      expect(() => Gaddag.deserialize(bytes)).toThrow('Invalid Gaddag data');
+    });
+
+    it('rejects data with a negative arc count', () => {
+      const bytes = Gaddag.fromArray(WORDS).serialize();
+      new Int32Array(bytes.buffer, 0, 4)[2] = -1;
+      expect(() => Gaddag.deserialize(bytes)).toThrow('Invalid Gaddag data');
+    });
+
     it('rejects data with an out-of-range root ref', () => {
       const bytes = Gaddag.fromArray(WORDS).serialize();
       const header = new Int32Array(bytes.buffer, 0, 4);
@@ -328,7 +340,7 @@ describe('Gaddag', () => {
 
     it('rejects data with a char code above the UTF-16 range', () => {
       // An unchecked huge char code would make the constructor allocate
-      // a proportionally huge code-point table from a tiny input.
+      // a proportionally huge code-unit table from a tiny input.
       const bytes = Gaddag.fromArray(WORDS).serialize();
       new Int32Array(bytes.buffer, HEADER_BYTES, 1)[0] = 100_000_000;
       expect(() => Gaddag.deserialize(bytes)).toThrow('Invalid Gaddag data');

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 
-import { MAX_WORD_LENGTH, MAX_WORDS } from './constants.ts';
+import { encodeWords, generateItems, insertItems, scanWords, sortItems } from './buildGaddag.ts';
+import { LAST_ARC_FLAG, MAX_WORD_LENGTH, MAX_WORDS } from './constants.ts';
 import { Gaddag } from './Gaddag.ts';
 
 const MULBERRY32_INCREMENT = 0x6d2b79f5;
@@ -207,5 +208,123 @@ describe('Gaddag.fromArray', () => {
 
       ++index;
     }
+  });
+});
+
+describe('scanWords', () => {
+  it('collects the alphabet in ascending code-unit order with its letter mapping', () => {
+    const scan = scanWords(['db', 'ca']);
+
+    expect([...scan.charCodes]).toEqual(['a', 'b', 'c', 'd'].map((letter) => letter.charCodeAt(0)));
+    expect(scan.letterByCharCode['a'.charCodeAt(0)]).toBe(1);
+    expect(scan.letterByCharCode['d'.charCodeAt(0)]).toBe(4);
+    expect(scan.wordsCount).toBe(2);
+    expect(scan.itemsCount).toBe(4);
+  });
+
+  it('excludes skipped words from the counts and the alphabet', () => {
+    const scan = scanWords(['', 'ab', 'c'.repeat(MAX_WORD_LENGTH + 1)]);
+
+    expect(scan.wordsCount).toBe(1);
+    expect(scan.itemsCount).toBe(2);
+    expect([...scan.charCodes]).toEqual(['a', 'b'].map((letter) => letter.charCodeAt(0)));
+  });
+});
+
+describe('encodeWords', () => {
+  it('flattens kept words into letter indices with one offset per word', () => {
+    const words = ['', 'ba', 'c'.repeat(MAX_WORD_LENGTH + 1), 'd'];
+    const { wordBytes, wordOffsets } = encodeWords(words, scanWords(words));
+
+    expect([...wordOffsets]).toEqual([0, 2, 3]);
+    expect([...wordBytes]).toEqual([2, 1, 3]);
+  });
+});
+
+describe('generateItems', () => {
+  it('packs one (word, split) item per letter', () => {
+    const items = generateItems(Int32Array.from([0, 2, 3]));
+
+    expect([...items]).toEqual([(0 << 6) | 1, (0 << 6) | 2, (1 << 6) | 1]);
+  });
+});
+
+describe('sortItems', () => {
+  it('orders items by their GADDAG sequence', () => {
+    const randomWord = createRandomWordGenerator(99, 'abc', 5);
+    const words = [...new Set(Array.from({ length: 200 }, randomWord))];
+    const { wordBytes, wordOffsets } = encodeWords(words, scanWords(words));
+    const items = generateItems(wordOffsets);
+
+    const sequenceOf = (item: number): number[] => {
+      const wordIndex = item >>> 6;
+      const split = item & 63;
+      const offset = wordOffsets[wordIndex];
+      const length = wordOffsets[wordIndex + 1] - offset;
+      const sequence: number[] = [];
+
+      for (let position = split - 1; position >= 0; --position) {
+        sequence.push(wordBytes[offset + position]);
+      }
+
+      if (split < length) {
+        sequence.push(0);
+
+        for (let position = split; position < length; ++position) {
+          sequence.push(wordBytes[offset + position]);
+        }
+      }
+
+      return sequence;
+    };
+
+    const compareSequences = (left: number[], right: number[]): number => {
+      for (let position = 0; position < Math.min(left.length, right.length); ++position) {
+        if (left[position] !== right[position]) {
+          return left[position] - right[position];
+        }
+      }
+
+      return left.length - right.length;
+    };
+
+    sortItems(items, wordBytes, wordOffsets);
+
+    const sequences = [...items].map(sequenceOf);
+    const expected = [...sequences].sort(compareSequences);
+
+    expect(sequences).toEqual(expected);
+  });
+});
+
+describe('insertItems', () => {
+  it('produces same-length arc arrays, an even root ref, and a terminated final arc', () => {
+    const words = ['car', 'card', 'care'];
+    const { wordBytes, wordOffsets } = encodeWords(words, scanWords(words));
+    const items = generateItems(wordOffsets);
+    sortItems(items, wordBytes, wordOffsets);
+    const { arcLabels, arcTargets, rootRef } = insertItems(items, wordBytes, wordOffsets);
+
+    expect(arcLabels.length).toBe(arcTargets.length);
+    expect(rootRef & 1).toBe(0);
+    expect(rootRef >>> 1).toBeGreaterThan(0);
+    expect(arcLabels[arcLabels.length - 1]).toBeGreaterThanOrEqual(LAST_ARC_FLAG);
+  });
+});
+
+describe('build pipeline', () => {
+  it('composes into a working Gaddag without fromArray', () => {
+    const words = ['scrabble', 'solver'];
+    const scan = scanWords(words);
+    const { wordBytes, wordOffsets } = encodeWords(words, scan);
+    const items = generateItems(wordOffsets);
+    sortItems(items, wordBytes, wordOffsets);
+    const arcs = insertItems(items, wordBytes, wordOffsets);
+    const gaddag = new Gaddag(arcs.arcLabels, arcs.arcTargets, arcs.rootRef, scan.charCodes);
+
+    expect(gaddag.has('scrabble')).toBe(true);
+    expect(gaddag.has('solver')).toBe(true);
+    expect(gaddag.has('scrab')).toBe(false);
+    expect(gaddag.hasPrefix('scrab')).toBe(true);
   });
 });
