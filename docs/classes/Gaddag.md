@@ -103,7 +103,7 @@ Ref of the root state.
 
 Defined in: [Gaddag.ts:282](https://github.com/kamilmielnik/gaddag/blob/master/src/Gaddag.ts#L282)
 
-Number of arcs (including the unused sentinel at index 0).
+Number of arcs in the automaton — the backing arrays additionally hold an unused sentinel at index 0.
 
 ##### Returns
 

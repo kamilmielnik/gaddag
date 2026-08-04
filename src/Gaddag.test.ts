@@ -194,16 +194,16 @@ describe('Gaddag', () => {
   });
 
   describe('arcsCount', () => {
-    it('counts the arcs including the unused sentinel', () => {
+    it('counts the arcs excluding the unused sentinel at index 0 of the backing arrays', () => {
       const gaddag = Gaddag.fromArray(['ab']);
 
-      expect(gaddag.arcsCount).toBe(gaddag.arcLabels.length);
-      expect(gaddag.arcsCount).toBe(gaddag.arcTargets.length);
-      expect(gaddag.arcsCount).toBeGreaterThan(1);
+      expect(gaddag.arcsCount).toBe(gaddag.arcLabels.length - 1);
+      expect(gaddag.arcsCount).toBe(gaddag.arcTargets.length - 1);
+      expect(gaddag.arcsCount).toBeGreaterThan(0);
     });
 
-    it('is 1 for an empty dictionary — only the sentinel', () => {
-      expect(Gaddag.fromArray([]).arcsCount).toBe(1);
+    it('is 0 for an empty dictionary', () => {
+      expect(Gaddag.fromArray([]).arcsCount).toBe(0);
     });
   });
 
@@ -227,7 +227,7 @@ describe('Gaddag', () => {
       let lastArcsCount = 0;
 
       // Skip the sentinel at index 0.
-      for (let index = 1; index < gaddag.arcsCount; ++index) {
+      for (let index = 1; index <= gaddag.arcsCount; ++index) {
         const label = gaddag.arcLabels[index];
         expect(label & LETTER_MASK).toBeLessThanOrEqual(gaddag.charCodes.length);
 
@@ -373,7 +373,7 @@ describe('Gaddag', () => {
 
     it('terminates when a target ref points past the arcs', () => {
       const gaddag = Gaddag.fromArray(WORDS);
-      const targets = Int32Array.from(gaddag.arcTargets, () => gaddag.arcsCount * 2);
+      const targets = Int32Array.from(gaddag.arcTargets, () => gaddag.arcLabels.length * 2);
       const corrupted = new Gaddag(gaddag.arcLabels, targets, gaddag.rootRef, gaddag.charCodes);
 
       expect(typeof corrupted.has('able')).toBe('boolean');

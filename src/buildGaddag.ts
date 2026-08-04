@@ -1,18 +1,31 @@
 import { LAST_ARC_FLAG, LETTER_MASK, MAX_LETTERS, MAX_WORD_LENGTH } from './constants.ts';
 import { type Alphabet, type EncodedWords } from './types.ts';
 
-/** Collects the alphabet of a word list, ordered by UTF-16 code unit. */
-export const buildAlphabet = (words: string[]): Alphabet => {
+/** {@link Alphabet} of a word list plus the sizes of the words a Gaddag keeps (non-empty, within length limits). */
+export interface WordListScan extends Alphabet {
+  /** Total letters across kept words — one GADDAG sequence per letter. */
+  itemsCount: number;
+  /** Number of kept words. */
+  wordsCount: number;
+}
+
+/** Collects the alphabet of a word list (ordered by UTF-16 code unit) and counts the kept words and letters. */
+export const scanWords = (words: string[]): WordListScan => {
   const codes = new Set<number>();
+  let itemsCount = 0;
+  let wordsCount = 0;
 
   for (const word of words) {
     if (typeof word !== 'string') {
       throw new TypeError('Gaddag supports string words only');
     }
 
-    if (word.length > MAX_WORD_LENGTH) {
+    if (word.length === 0 || word.length > MAX_WORD_LENGTH) {
       continue;
     }
+
+    itemsCount += word.length;
+    ++wordsCount;
 
     for (let index = 0; index < word.length; ++index) {
       codes.add(word.charCodeAt(index));
@@ -31,24 +44,15 @@ export const buildAlphabet = (words: string[]): Alphabet => {
     letterByCharCode[charCodes[index]] = index + 1;
   }
 
-  return { charCodes, letterByCharCode };
+  return { charCodes, itemsCount, letterByCharCode, wordsCount };
 };
 
 /** Flattens a word list into letter indices. */
-export const encodeWords = (words: string[], letterByCharCode: Int32Array): EncodedWords => {
-  let totalLength = 0;
-  let wordsCount = 0;
-
-  for (const word of words) {
-    if (word.length === 0 || word.length > MAX_WORD_LENGTH) {
-      continue;
-    }
-
-    totalLength += word.length;
-    ++wordsCount;
-  }
-
-  const wordBytes = new Uint8Array(totalLength);
+export const encodeWords = (
+  words: string[],
+  { itemsCount, letterByCharCode, wordsCount }: WordListScan,
+): EncodedWords => {
+  const wordBytes = new Uint8Array(itemsCount);
   const wordOffsets = new Int32Array(wordsCount + 1);
   let offset = 0;
   let wordIndex = 0;
@@ -69,7 +73,7 @@ export const encodeWords = (words: string[], letterByCharCode: Int32Array): Enco
   }
 
   wordOffsets[wordsCount] = offset;
-  return { itemsCount: totalLength, wordBytes, wordOffsets, wordsCount };
+  return { itemsCount, wordBytes, wordOffsets, wordsCount };
 };
 
 /** Enumerates every `(word, split)` pair as a packed integer — one per GADDAG sequence. */
@@ -176,9 +180,7 @@ export const sortItems = (items: Int32Array, wordBytes: Uint8Array, wordOffsets:
         auxiliary[starts[charAt(item, depth, wordBytes, wordOffsets)]++] = item;
       }
 
-      for (let index = low; index < high; ++index) {
-        items[index] = auxiliary[index];
-      }
+      items.set(auxiliary.subarray(low, high), low);
 
       // After the scatter, starts[bucket] holds the end position of each bucket.
       for (let bucket = 1; bucket < RADIX; ++bucket) {

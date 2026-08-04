@@ -1,4 +1,4 @@
-import { buildAlphabet, encodeWords, generateItems, insertItems, sortItems } from './buildGaddag.ts';
+import { encodeWords, generateItems, insertItems, scanWords, sortItems } from './buildGaddag.ts';
 import { HEADER_BYTES, LAST_ARC_FLAG, LETTER_MASK, MAGIC, MAX_LETTERS, MAX_WORDS, SEPARATOR } from './constants.ts';
 
 /** Char codes are UTF-16 code units, so serialized alphabets cannot exceed this. */
@@ -30,7 +30,7 @@ export class Gaddag {
   public readonly charCodes: Int32Array;
 
   /** Letter index of each code unit, 0 when the code unit is not in the alphabet. */
-  private readonly lettersByCharCode: Int32Array;
+  private readonly letterByCharCode: Int32Array;
 
   /** Targets of the root's arcs, indexed by letter — the root is the hottest state. */
   private readonly rootArcs: Int32Array;
@@ -47,12 +47,12 @@ export class Gaddag {
       throw new Error(`Gaddag supports up to ${MAX_WORDS - 1} words, got ${words.length}`);
     }
 
-    const { charCodes, letterByCharCode } = buildAlphabet(words);
-    const { itemsCount, wordBytes, wordOffsets, wordsCount } = encodeWords(words, letterByCharCode);
+    const scan = scanWords(words);
+    const { itemsCount, wordBytes, wordOffsets, wordsCount } = encodeWords(words, scan);
     const items = generateItems(wordsCount, wordOffsets, itemsCount);
     sortItems(items, wordBytes, wordOffsets);
     const { arcLabels, arcTargets, rootRef } = insertItems(items, wordBytes, wordOffsets);
-    return new Gaddag(arcLabels, arcTargets, rootRef, charCodes);
+    return new Gaddag(arcLabels, arcTargets, rootRef, scan.charCodes);
   }
 
   /**
@@ -147,10 +147,10 @@ export class Gaddag {
       }
     }
 
-    this.lettersByCharCode = new Int32Array(maxCharCode + 1);
+    this.letterByCharCode = new Int32Array(maxCharCode + 1);
 
     for (let index = 0; index < charCodes.length; ++index) {
-      this.lettersByCharCode[charCodes[index]] = index + 1;
+      this.letterByCharCode[charCodes[index]] = index + 1;
     }
 
     this.rootArcs = new Int32Array(MAX_LETTERS + 1);
@@ -212,7 +212,7 @@ export class Gaddag {
 
   /** Walks `word` right-to-left from the root; returns the reached ref, or 0 when there is no such path. */
   private findReversedRef(word: string): number {
-    const letters = this.lettersByCharCode;
+    const letters = this.letterByCharCode;
     const lettersLength = letters.length;
     let index = word.length - 1;
     const lastCharCode = word.charCodeAt(index);
@@ -272,14 +272,14 @@ export class Gaddag {
 
   /** Maps a UTF-16 code unit to its letter index, or -1 when `charCode` is not an integer or not in the alphabet. */
   public getLetter(charCode: number): number {
-    const letters = this.lettersByCharCode;
+    const letters = this.letterByCharCode;
     // A non-integer index reads `undefined` from the typed array.
     const letter = charCode >= 0 && charCode < letters.length ? (letters[charCode] ?? 0) : 0;
     return letter === 0 ? -1 : letter;
   }
 
-  /** Number of arcs (including the unused sentinel at index 0). */
+  /** Number of arcs in the automaton — the backing arrays additionally hold an unused sentinel at index 0. */
   public get arcsCount(): number {
-    return this.arcTargets.length;
+    return this.arcTargets.length - 1;
   }
 }
