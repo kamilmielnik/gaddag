@@ -15,6 +15,8 @@ import { type Dictionary, type DictionarySource, type SizeRow } from './types.ts
 const README_PATH = new URL('../README.md', import.meta.url);
 const DICT_DIR = new URL('./dictionaries/', import.meta.url);
 const CHARTS_DIR = new URL('./charts/', import.meta.url);
+// Absolute URLs so the images render on npmjs.com, where bench/ is not published.
+const CHARTS_URL_BASE = 'https://raw.githubusercontent.com/kamilmielnik/gaddag/master/bench/charts';
 const DICT_REPO_BASE = 'https://raw.githubusercontent.com/kamilmielnik/scrabble-dictionaries/master';
 
 const FAST_MARKER = 'BENCH:fast';
@@ -102,10 +104,10 @@ const main = async () => {
 
   console.log('Updating README.md...');
   const original = await readFile(README_PATH, 'utf8');
-  let updated = replaceBetween(original, FAST_MARKER, '![Fast operations chart](bench/charts/fast.svg)');
-  updated = replaceBetween(updated, BUILD_MARKER, '![Gaddag.fromArray chart](bench/charts/fromArray.svg)');
-  updated = replaceBetween(updated, SERIALIZE_MARKER, '![Serialize chart](bench/charts/serialize.svg)');
-  updated = replaceBetween(updated, DESERIALIZE_MARKER, '![Deserialize chart](bench/charts/deserialize.svg)');
+  let updated = replaceBetween(original, FAST_MARKER, `![Fast operations chart](${CHARTS_URL_BASE}/fast.svg)`);
+  updated = replaceBetween(updated, BUILD_MARKER, `![Gaddag.fromArray chart](${CHARTS_URL_BASE}/fromArray.svg)`);
+  updated = replaceBetween(updated, SERIALIZE_MARKER, `![Serialize chart](${CHARTS_URL_BASE}/serialize.svg)`);
+  updated = replaceBetween(updated, DESERIALIZE_MARKER, `![Deserialize chart](${CHARTS_URL_BASE}/deserialize.svg)`);
   updated = replaceBetween(updated, SIZE_MARKER, sizeTable);
   updated = replaceBetween(updated, 'SIZE:summary', sizeSummary);
 
@@ -154,40 +156,58 @@ const readWords = async (path: string): Promise<string[]> => {
   return lines.map((line) => line.trim()).filter((line) => /^\p{L}+$/u.test(line));
 };
 
+// Each benchmarked operation cycles through this many words spread evenly across
+// the dictionary — querying a single word over and over would only measure a
+// fully cached, branch-predicted best case. Power of two, so cycling is a mask.
+const SAMPLE_SIZE = 1024;
+const SAMPLE_MASK = SAMPLE_SIZE - 1;
+
 const runFast = async (dict: Dictionary, time: number): Promise<Map<string, number>> => {
   const { gaddag } = dict;
-  const presentWord = dict.words[Math.floor(dict.words.length / 2)]!;
-  const missingWord = findMissingWord(dict);
-  const prefix = presentWord.slice(0, Math.min(3, presentWord.length));
-  const firstLetter = gaddag.getLetter(presentWord.charCodeAt(presentWord.length - 1));
+  const present = sampleWords(dict.words, SAMPLE_SIZE);
+  const missing = present.map((word) => findMissingWord(gaddag, word));
+  const prefixes = present.map((word) => word.slice(0, Math.min(3, word.length)));
+  const lastLetters = present.map((word) => gaddag.getLetter(word.charCodeAt(word.length - 1)));
 
   const bench = new Bench({ time });
+  let hasHitIndex = 0;
+  let hasMissIndex = 0;
+  let prefixHitIndex = 0;
+  let prefixMissIndex = 0;
+  let arcIndex = 0;
 
   bench
     .add('has (hit)', () => {
-      gaddag.has(presentWord);
+      gaddag.has(present[hasHitIndex]!);
+      hasHitIndex = (hasHitIndex + 1) & SAMPLE_MASK;
     })
     .add('has (miss)', () => {
-      gaddag.has(missingWord);
+      gaddag.has(missing[hasMissIndex]!);
+      hasMissIndex = (hasMissIndex + 1) & SAMPLE_MASK;
     })
     .add('hasPrefix (hit)', () => {
-      gaddag.hasPrefix(prefix);
+      gaddag.hasPrefix(prefixes[prefixHitIndex]!);
+      prefixHitIndex = (prefixHitIndex + 1) & SAMPLE_MASK;
     })
     .add('hasPrefix (miss)', () => {
-      gaddag.hasPrefix(missingWord);
+      gaddag.hasPrefix(missing[prefixMissIndex]!);
+      prefixMissIndex = (prefixMissIndex + 1) & SAMPLE_MASK;
     })
     .add('getArc', () => {
-      gaddag.getArc(gaddag.rootRef, firstLetter);
+      gaddag.getArc(gaddag.rootRef, lastLetters[arcIndex]!);
+      arcIndex = (arcIndex + 1) & SAMPLE_MASK;
     });
 
   await bench.run();
   return collectResults(bench);
 };
 
-const findMissingWord = (dict: Dictionary): string => {
-  const base = dict.words[Math.floor(dict.words.length / 2)]!;
+const sampleWords = (words: string[], count: number): string[] =>
+  Array.from({ length: count }, (_, index) => words[Math.floor((index * words.length) / count)]!);
+
+const findMissingWord = (gaddag: Gaddag, base: string): string => {
   let candidate = base + base;
-  while (dict.gaddag.has(candidate)) {
+  while (gaddag.has(candidate)) {
     candidate += base;
   }
   return candidate;

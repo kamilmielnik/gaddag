@@ -1,7 +1,7 @@
-/** Letters of a word list, indexed 1..63 in ascending code-point order (0 is the separator). */
+/** Letters of a word list, indexed 1..63 in ascending code-unit order (0 is the separator). */
 export interface Alphabet {
   charCodes: Int32Array;
-  /** Letter index of each code point, 0 when the code point is not in the alphabet. */
+  /** Letter index of each UTF-16 code unit, 0 when the code unit is not in the alphabet. */
   letterByCharCode: Int32Array;
 }
 

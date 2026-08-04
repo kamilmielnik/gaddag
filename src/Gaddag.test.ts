@@ -168,7 +168,7 @@ describe('Gaddag', () => {
   });
 
   describe('getLetter', () => {
-    it('maps alphabet code points to letter indices', () => {
+    it('maps alphabet code units to letter indices', () => {
       const gaddag = Gaddag.fromArray(['bac']);
 
       expect(gaddag.getLetter('a'.charCodeAt(0))).toBe(1);
@@ -177,7 +177,7 @@ describe('Gaddag', () => {
       expect(gaddag.getLetter('d'.charCodeAt(0))).toBe(-1);
     });
 
-    it('returns -1 for code points outside the alphabet range', () => {
+    it('returns -1 for code units outside the alphabet range', () => {
       const gaddag = Gaddag.fromArray(['bac']);
 
       expect(gaddag.getLetter(0)).toBe(-1);
@@ -301,6 +301,14 @@ describe('Gaddag', () => {
       const bytes = Gaddag.fromArray(WORDS).serialize();
       const header = new Int32Array(bytes.buffer, 0, 4);
       header[3] = header[2] * 2;
+      expect(() => Gaddag.deserialize(bytes)).toThrow('Invalid Gaddag data');
+    });
+
+    it('rejects data whose root ref has the word-end bit set', () => {
+      // A final root would mean the empty string is a word — serialize never
+      // writes one, and hasPrefix('') would report a non-empty dictionary.
+      const bytes = Gaddag.fromArray(WORDS).serialize();
+      new Int32Array(bytes.buffer, 0, 4)[3] |= 1;
       expect(() => Gaddag.deserialize(bytes)).toThrow('Invalid Gaddag data');
     });
 

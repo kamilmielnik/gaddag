@@ -1,7 +1,7 @@
 import { LAST_ARC_FLAG, LETTER_MASK, MAX_LETTERS, MAX_WORD_LENGTH } from './constants.ts';
 import { type Alphabet, type EncodedWords } from './types.ts';
 
-/** Collects the alphabet of a word list, ordered by code point. */
+/** Collects the alphabet of a word list, ordered by UTF-16 code unit. */
 export const buildAlphabet = (words: string[]): Alphabet => {
   const codes = new Set<number>();
 

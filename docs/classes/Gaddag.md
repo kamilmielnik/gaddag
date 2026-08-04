@@ -25,7 +25,7 @@ Arcs of a state are contiguous and sorted by letter; the last one is marked with
 
 > **new Gaddag**(`arcLabels`, `arcTargets`, `rootRef`, `charCodes`): `Gaddag`
 
-Defined in: [Gaddag.ts:133](https://github.com/kamilmielnik/gaddag/blob/master/src/Gaddag.ts#L133)
+Defined in: [Gaddag.ts:136](https://github.com/kamilmielnik/gaddag/blob/master/src/Gaddag.ts#L136)
 
 Wraps pre-built arrays without any validation — prefer [Gaddag.fromArray](#fromarray)
 and [Gaddag.deserialize](#deserialize). Lookups on invalid arrays terminate but
@@ -81,7 +81,7 @@ Arc targets: encoded state refs. Index 0 is an unused sentinel.
 
 Defined in: [Gaddag.ts:30](https://github.com/kamilmielnik/gaddag/blob/master/src/Gaddag.ts#L30)
 
-Code point of each letter index (position 0 holds the code point of letter 1).
+UTF-16 code unit of each letter index (position 0 holds the code unit of letter 1).
 
 ***
 
@@ -101,7 +101,7 @@ Ref of the root state.
 
 > **get** **arcsCount**(): `number`
 
-Defined in: [Gaddag.ts:279](https://github.com/kamilmielnik/gaddag/blob/master/src/Gaddag.ts#L279)
+Defined in: [Gaddag.ts:282](https://github.com/kamilmielnik/gaddag/blob/master/src/Gaddag.ts#L282)
 
 Number of arcs (including the unused sentinel at index 0).
 
@@ -115,7 +115,7 @@ Number of arcs (including the unused sentinel at index 0).
 
 > **getArc**(`ref`, `letter`): `number`
 
-Defined in: [Gaddag.ts:246](https://github.com/kamilmielnik/gaddag/blob/master/src/Gaddag.ts#L246)
+Defined in: [Gaddag.ts:249](https://github.com/kamilmielnik/gaddag/blob/master/src/Gaddag.ts#L249)
 
 Follows the arc labeled with `letter` from the state `ref` points at.
 Returns the target ref, or 0 when there is no such arc.
@@ -144,9 +144,9 @@ corrupted data cannot make it run forever.
 
 > **getLetter**(`charCode`): `number`
 
-Defined in: [Gaddag.ts:271](https://github.com/kamilmielnik/gaddag/blob/master/src/Gaddag.ts#L271)
+Defined in: [Gaddag.ts:274](https://github.com/kamilmielnik/gaddag/blob/master/src/Gaddag.ts#L274)
 
-Maps a code point to its letter index, or -1 when `charCode` is not an integer or not in the alphabet.
+Maps a UTF-16 code unit to its letter index, or -1 when `charCode` is not an integer or not in the alphabet.
 
 #### Parameters
 
@@ -164,7 +164,7 @@ Maps a code point to its letter index, or -1 when `charCode` is not an integer o
 
 > **has**(`word`): `boolean`
 
-Defined in: [Gaddag.ts:189](https://github.com/kamilmielnik/gaddag/blob/master/src/Gaddag.ts#L189)
+Defined in: [Gaddag.ts:192](https://github.com/kamilmielnik/gaddag/blob/master/src/Gaddag.ts#L192)
 
 Returns whether `word` is in the dictionary. The empty string never is.
 
@@ -184,7 +184,7 @@ Returns whether `word` is in the dictionary. The empty string never is.
 
 > **hasPrefix**(`prefix`): `boolean`
 
-Defined in: [Gaddag.ts:201](https://github.com/kamilmielnik/gaddag/blob/master/src/Gaddag.ts#L201)
+Defined in: [Gaddag.ts:204](https://github.com/kamilmielnik/gaddag/blob/master/src/Gaddag.ts#L204)
 
 Returns whether any word in the dictionary starts with `prefix`.
 The empty prefix matches exactly when the dictionary is non-empty.
@@ -205,7 +205,7 @@ The empty prefix matches exactly when the dictionary is non-empty.
 
 > **serialize**(): `Uint8Array`
 
-Defined in: [Gaddag.ts:173](https://github.com/kamilmielnik/gaddag/blob/master/src/Gaddag.ts#L173)
+Defined in: [Gaddag.ts:176](https://github.com/kamilmielnik/gaddag/blob/master/src/Gaddag.ts#L176)
 
 Serializes the automaton into the compact binary format read by
 [Gaddag.deserialize](#deserialize). The returned bytes are freshly allocated

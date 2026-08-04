@@ -26,10 +26,10 @@ export class Gaddag {
   /** Ref of the root state. */
   public readonly rootRef: number;
 
-  /** Code point of each letter index (position 0 holds the code point of letter 1). */
+  /** UTF-16 code unit of each letter index (position 0 holds the code unit of letter 1). */
   public readonly charCodes: Int32Array;
 
-  /** Letter index of each code point, 0 when the code point is not in the alphabet. */
+  /** Letter index of each code unit, 0 when the code unit is not in the alphabet. */
   private readonly lettersByCharCode: Int32Array;
 
   /** Targets of the root's arcs, indexed by letter — the root is the hottest state. */
@@ -80,12 +80,15 @@ export class Gaddag {
     const rootRef = header[3];
     const expectedByteLength = HEADER_BYTES + 4 * (letterCount + arcCount) + arcCount;
 
+    // The root is never a word end — empty words are skipped — so a set
+    // word-end bit on the root ref means corruption.
     if (
       header[0] !== MAGIC ||
       letterCount < 0 ||
       letterCount > MAX_LETTERS ||
       arcCount < 1 ||
       rootRef < 0 ||
+      (rootRef & 1) === 1 ||
       rootRef >>> 1 >= arcCount ||
       aligned.byteLength !== expectedByteLength
     ) {
@@ -267,7 +270,7 @@ export class Gaddag {
     return 0;
   }
 
-  /** Maps a code point to its letter index, or -1 when `charCode` is not an integer or not in the alphabet. */
+  /** Maps a UTF-16 code unit to its letter index, or -1 when `charCode` is not an integer or not in the alphabet. */
   public getLetter(charCode: number): number {
     const letters = this.lettersByCharCode;
     // A non-integer index reads `undefined` from the typed array.
