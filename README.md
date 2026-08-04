@@ -63,7 +63,7 @@ See full [API Docs](https://github.com/kamilmielnik/gaddag/blob/master/docs/READ
 Good to know:
 
 - a [`Gaddag`](https://github.com/kamilmielnik/gaddag/blob/master/docs/classes/Gaddag.md) is immutable — to change the dictionary, build a new one with [`Gaddag.fromArray`](https://github.com/kamilmielnik/gaddag/blob/master/docs/classes/Gaddag.md#fromarray)
-- [`Gaddag.deserialize`](https://github.com/kamilmielnik/gaddag/blob/master/docs/classes/Gaddag.md#deserialize) checks that the data describes a walkable automaton, reading each arc once; pass `{ trusted: true }` to skip that pass for data you produced yourself — see [Deserializing untrusted data](#deserializing-untrusted-data)
+- [`Gaddag.deserialize`](https://github.com/kamilmielnik/gaddag/blob/master/docs/classes/Gaddag.md#deserialize) checks that the data describes a well-formed automaton, reading each arc once; pass `{ trusted: true }` to skip that pass for data you produced yourself — see [Deserializing untrusted data](#deserializing-untrusted-data)
 - immutability is not enforced: the backing typed arrays are exposed directly (and shared with the input of [`Gaddag.deserialize`](https://github.com/kamilmielnik/gaddag/blob/master/docs/classes/Gaddag.md#deserialize) when it is 4-byte aligned) — treat them as read-only, writing to them corrupts the automaton
 - all exports are named (there is no default export)
 - `MAX_LETTERS`, `MAX_WORD_LENGTH`, and `MAX_WORDS` are described in [Limits](#limits)
@@ -123,7 +123,7 @@ const isWord = (ref & 1) === 1; // true
 | --- | --- | --- |
 | Distinct characters (`MAX_LETTERS`) | 63 | `Gaddag.fromArray` throws — a letter index takes 6 bits, and `0` is reserved for the `◇` separator. |
 | Word length (`MAX_WORD_LENGTH`) | 63 | The word is skipped — no board fits it anyway, and a split position takes 6 bits. |
-| Word list length (`MAX_WORDS`) | 33,554,432 (`2^25`) | `Gaddag.fromArray` throws for longer lists — a word index and a split position pack into one 31-bit integer. |
+| Word count (`MAX_WORDS`) | 33,554,432 (`2^25`) | `Gaddag.fromArray` throws when more words remain after skipping — a word index and a split position pack into one 31-bit integer. |
 
 Distinct characters (`MAX_LETTERS`) and word length (`MAX_WORD_LENGTH`) are counted in UTF-16 code units, not code points: a character outside the Basic Multilingual Plane (an emoji, a rare CJK ideograph) is a surrogate pair, so it takes two alphabet slots and two of a word's 63 characters. Words are matched consistently either way, and `hasPrefix` accepts a lone leading surrogate as a prefix.
 
@@ -131,7 +131,7 @@ Empty words are skipped; a non-string entry throws. Duplicated words and unsorte
 
 # Deserializing untrusted data
 
-`Gaddag.deserialize` rejects data that does not describe a walkable automaton, so following arcs always terminates — `has`, `hasPrefix`, `getArc`, and any traversal you write on top of them. The check reads every arc once, which is the bulk of what deserialization costs; `{ trusted: true }` skips it:
+`Gaddag.deserialize` rejects data that does not describe a well-formed automaton: every state's arcs are sorted with no duplicate letters, and following arcs always terminates — through `has`, `hasPrefix`, `getArc`, and any traversal you write on top of them. The check reads every arc once, which is the bulk of what deserialization costs; `{ trusted: true }` skips it:
 
 ```TypeScript
 const gaddag = Gaddag.deserialize(bytes, { trusted: true }); // only for data you serialized yourself
@@ -157,7 +157,8 @@ import { readFile } from 'node:fs/promises';
 import { Gaddag } from '@kamilmielnik/gaddag';
 
 const file = await readFile('dictionary.txt', 'utf-8');
-const gaddag = Gaddag.fromArray(file.split(/\r?\n/).filter(Boolean));
+const lines = file.split('\n').map((line) => line.trim());
+const gaddag = Gaddag.fromArray(lines.filter((line) => /^\p{L}+$/u.test(line)));
 
 gaddag.has('solver');     // is "solver" in the dictionary?
 gaddag.hasPrefix('scra'); // does any word start with "scra"?

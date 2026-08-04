@@ -8,10 +8,11 @@
 
 > **insertItems**(`items`, `wordBytes`, `wordOffsets`): [`GaddagArcs`](../interfaces/GaddagArcs.md)
 
-Defined in: [buildGaddag.ts:313](https://github.com/kamilmielnik/gaddag/blob/master/src/buildGaddag.ts#L313)
+Defined in: [buildGaddag.ts:314](https://github.com/kamilmielnik/gaddag/blob/master/src/buildGaddag.ts#L314)
 
 Feeds the ordered sequences to an incremental minimal-automaton builder
-(Daciuk et al., 2000) and returns the resulting arcs.
+(Daciuk et al., 2000) and returns the resulting arcs. Throws when the items
+arrive unsorted — [sortItems](sortItems.md) is what orders them.
 
 ## Parameters
 

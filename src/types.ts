@@ -30,8 +30,9 @@ export interface GaddagArcs {
 /** Options of `Gaddag.deserialize`. */
 export interface DeserializeOptions {
   /**
-   * Skips the structural pass over the arcs — the pass that rules out cycles and
-   * out-of-range targets. Set it only for data this library produced itself:
+   * Skips the structural pass over the arcs — the pass that rules out cycles,
+   * out-of-range targets, and mis-sorted states. Set it only for data this
+   * library produced itself:
    * without it, crafted input can make arc following loop forever.
    */
   trusted?: boolean;

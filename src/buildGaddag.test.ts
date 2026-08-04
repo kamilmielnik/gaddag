@@ -96,16 +96,23 @@ describe('Gaddag.fromArray', () => {
     }
   });
 
-  it('throws when given too many words', () => {
-    const words = new Array<string>(MAX_WORDS + 1);
+  it('throws when the kept words exceed MAX_WORDS', () => {
+    const words = new Array<string>(MAX_WORDS + 1).fill('a');
 
     expect(() => Gaddag.fromArray(words)).toThrow(`Gaddag supports up to ${MAX_WORDS} words, got ${MAX_WORDS + 1}`);
   });
 
-  it('applies the word count limit only above MAX_WORDS', () => {
-    // A sparse array of the largest accepted length. Iterating it still yields
-    // its holes, so the type guard is what rejects it — the count limit does not.
-    const words = new Array<string>(MAX_WORDS);
+  it('does not count skipped words against MAX_WORDS', () => {
+    const words = new Array<string>(MAX_WORDS + 1).fill('');
+    words[0] = 'ab';
+    const gaddag = Gaddag.fromArray(words);
+
+    expect(gaddag.has('ab')).toBe(true);
+  });
+
+  it('rejects sparse arrays through the string type guard', () => {
+    // Iterating a sparse array yields its holes as undefined entries.
+    const words = new Array<string>(3);
 
     expect(() => Gaddag.fromArray(words)).toThrow('Gaddag supports string words only');
   });
@@ -309,6 +316,23 @@ describe('insertItems', () => {
     expect(rootRef & 1).toBe(0);
     expect(rootRef >>> 1).toBeGreaterThan(0);
     expect(arcLabels[arcLabels.length - 1]).toBeGreaterThanOrEqual(LAST_ARC_FLAG);
+  });
+
+  it('rejects items arriving out of order', () => {
+    const words = ['b', 'a'];
+    const { wordBytes, wordOffsets } = encodeWords(words, scanWords(words));
+    const items = generateItems(wordOffsets);
+
+    expect(() => insertItems(items, wordBytes, wordOffsets)).toThrow('sorted order');
+  });
+
+  it('rejects a sequence arriving after its own extension', () => {
+    // Without sorting, rev('aa') arrives before its strict prefix rev('a').
+    const words = ['aa', 'a'];
+    const { wordBytes, wordOffsets } = encodeWords(words, scanWords(words));
+    const items = generateItems(wordOffsets);
+
+    expect(() => insertItems(items, wordBytes, wordOffsets)).toThrow('sorted order');
   });
 });
 

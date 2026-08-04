@@ -44,11 +44,11 @@ export class Gaddag {
    * radix sort, and fed to an incremental minimal-automaton builder.
    */
   public static fromArray(words: string[]): Gaddag {
-    if (words.length > MAX_WORDS) {
-      throw new Error(`Gaddag supports up to ${MAX_WORDS} words, got ${words.length}`);
-    }
-
     const scan = scanWords(words);
+
+    if (scan.wordsCount > MAX_WORDS) {
+      throw new Error(`Gaddag supports up to ${MAX_WORDS} words, got ${scan.wordsCount}`);
+    }
     const { wordBytes, wordOffsets } = encodeWords(words, scan);
     const items = generateItems(wordOffsets);
     sortItems(items, wordBytes, wordOffsets);
@@ -63,7 +63,8 @@ export class Gaddag {
    * given buffer directly — do not mutate it afterwards.
    *
    * Throws when the data was not written by a compatible version, is not exactly
-   * the serialized length, or does not describe a walkable automaton. The
+   * the serialized length, or does not describe a well-formed automaton — one
+   * with letter-sorted, duplicate-free states whose walks all terminate. The
    * structural pass that establishes the latter reads every arc once; skip it
    * with {@link DeserializeOptions.trusted} for self-produced data.
    */
@@ -128,6 +129,14 @@ export class Gaddag {
       throw new Error('Invalid Gaddag data');
     }
 
+    // A state starts at index 1 or right after a LAST-flagged arc — a root ref
+    // pointing mid-state would silently drop the root arcs in front of it.
+    const rootArcIndex = rootRef >>> 1;
+
+    if (rootArcIndex > 1 && arcLabels[rootArcIndex - 1] < LAST_ARC_FLAG) {
+      throw new Error('Invalid Gaddag data');
+    }
+
     // Every arc of a state targets a state that begins before that state's first
     // arc — the builder freezes a state only once all of its children are. Bounding
     // a target by its own arc index instead would admit a state's later arc looping
@@ -135,18 +144,26 @@ export class Gaddag {
     // tracks each state's first arc (states run until LAST_ARC_FLAG). This also
     // rejects out-of-range, negative, and out-of-alphabet arcs, which is what leaves
     // every walk of the automaton — this class's own, and any a caller writes — finite.
+    // Letters must also be strictly ascending within each state — the order
+    // getArc's early-exit scan assumes; mis-sorted or duplicated arcs would
+    // silently drop words.
     if (!trusted) {
       let stateStart = 1;
+      let previousLetter = -1;
 
       for (let index = 1; index < arcCount; ++index) {
         const label = arcLabels[index];
+        const letter = label & LETTER_MASK;
 
-        if (arcTargets[index] >>> 1 >= stateStart || (label & LETTER_MASK) > letterCount) {
+        if (arcTargets[index] >>> 1 >= stateStart || letter > letterCount || letter <= previousLetter) {
           throw new Error('Invalid Gaddag data');
         }
 
         if (label >= LAST_ARC_FLAG) {
           stateStart = index + 1;
+          previousLetter = -1;
+        } else {
+          previousLetter = letter;
         }
       }
     }

@@ -308,7 +308,8 @@ const MAX_ARCS_PER_STATE = MAX_LETTERS + 1;
 
 /**
  * Feeds the ordered sequences to an incremental minimal-automaton builder
- * (Daciuk et al., 2000) and returns the resulting arcs.
+ * (Daciuk et al., 2000) and returns the resulting arcs. Throws when the items
+ * arrive unsorted — {@link sortItems} is what orders them.
  */
 export const insertItems = (items: Int32Array, wordBytes: Uint8Array, wordOffsets: Int32Array): GaddagArcs => {
   const builder = new Builder();
@@ -401,6 +402,17 @@ class Builder {
 
     while (commonPrefixLength < maxCommon && sequence[commonPrefixLength] === previous[commonPrefixLength]) {
       ++commonPrefixLength;
+    }
+
+    // A sequence sorting below the previous one — or being its strict prefix —
+    // would have to reopen already-frozen states and silently corrupt them.
+    const outOfOrder =
+      commonPrefixLength < maxCommon
+        ? sequence[commonPrefixLength] < previous[commonPrefixLength]
+        : length < this.previousLength;
+
+    if (outOfOrder) {
+      throw new Error('Gaddag sequences must be inserted in sorted order');
     }
 
     for (let depth = this.previousLength; depth > commonPrefixLength; --depth) {

@@ -13,6 +13,22 @@ const arcLabelsOf = (bytes: Uint8Array): Uint8Array => {
   return new Uint8Array(bytes.buffer, HEADER_BYTES + 4 * (letterCount + arcCount), arcCount);
 };
 
+const firstMultiArcStateOf = (labels: Uint8Array): number => {
+  let stateStart = 1;
+
+  for (let index = 1; index < labels.length; ++index) {
+    if (labels[index] >= LAST_ARC_FLAG) {
+      if (index > stateStart) {
+        return stateStart;
+      }
+
+      stateStart = index + 1;
+    }
+  }
+
+  throw new Error('No multi-arc state in the automaton');
+};
+
 const WORDS = [
   'a',
   'ab',
@@ -420,6 +436,39 @@ describe('Gaddag', () => {
       const bytes = Gaddag.fromArray(WORDS).serialize();
       const labels = arcLabelsOf(bytes);
       labels[1] = (labels[1] & LAST_ARC_FLAG) | MAX_LETTERS;
+      expect(() => Gaddag.deserialize(bytes)).toThrow('Invalid Gaddag data');
+    });
+
+    it('rejects data whose state arcs are not sorted by letter', () => {
+      // getArc's early-exit scan assumes sorted arcs — a mis-sorted state would
+      // silently hide the letter that now comes second. Targets are swapped along
+      // with the letters, so only the letter order is invalid.
+      const bytes = Gaddag.fromArray(WORDS).serialize();
+      const labels = arcLabelsOf(bytes);
+      const targets = arcTargetsOf(bytes);
+      const first = firstMultiArcStateOf(labels);
+      const second = first + 1;
+      const firstLetter = labels[first] & LETTER_MASK;
+      labels[first] = (labels[first] & LAST_ARC_FLAG) | (labels[second] & LETTER_MASK);
+      labels[second] = (labels[second] & LAST_ARC_FLAG) | firstLetter;
+      [targets[first], targets[second]] = [targets[second], targets[first]];
+      expect(() => Gaddag.deserialize(bytes)).toThrow('Invalid Gaddag data');
+    });
+
+    it('rejects data with duplicate letters within a state', () => {
+      const bytes = Gaddag.fromArray(WORDS).serialize();
+      const labels = arcLabelsOf(bytes);
+      const first = firstMultiArcStateOf(labels);
+      labels[first + 1] = (labels[first + 1] & LAST_ARC_FLAG) | (labels[first] & LETTER_MASK);
+      expect(() => Gaddag.deserialize(bytes)).toThrow('Invalid Gaddag data');
+    });
+
+    it('rejects a root ref that does not point at the first arc of a state', () => {
+      // The constructor's root-arc scan starting mid-state would silently drop
+      // the root arcs in front of it.
+      const gaddag = Gaddag.fromArray(WORDS);
+      const bytes = gaddag.serialize();
+      new Int32Array(bytes.buffer, 0, 4)[3] = ((gaddag.rootRef >>> 1) + 1) << 1;
       expect(() => Gaddag.deserialize(bytes)).toThrow('Invalid Gaddag data');
     });
 
