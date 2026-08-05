@@ -18,15 +18,18 @@ const DICT_REPO_BASE = 'https://raw.githubusercontent.com/kamilmielnik/scrabble-
 const FAST_MARKER = 'BENCH:fast';
 const BUILD_MARKER = 'BENCH:fromArray';
 const SERIALIZE_MARKER = 'BENCH:serialize';
-const DESERIALIZE_MARKER = 'BENCH:deserialize';
 const DICTIONARIES_MARKER = 'DICTIONARIES';
 
-const FAST_OPERATIONS = ['has (hit)', 'has (miss)', 'hasPrefix (hit)', 'hasPrefix (miss)', 'getArc'];
+const FAST_OPERATIONS = [
+  'has (hit)',
+  'has (miss)',
+  'hasPrefix (hit)',
+  'hasPrefix (miss)',
+  'getArc',
+  'Gaddag.deserialize',
+];
 const BUILD_OPERATIONS = ['Gaddag.fromArray'];
 const SERIALIZE_OPERATIONS = ['serialize'];
-// Only the validating default is charted: `{ trusted: true }` is faster by three
-// orders of magnitude, and a linear axis holding both would flatten this one to nothing.
-const DESERIALIZE_OPERATIONS = ['Gaddag.deserialize'];
 
 const SOURCES: DictionarySource[] = [
   {
@@ -79,10 +82,6 @@ const main = async (): Promise<void> => {
   await writeFile(new URL('fast.svg', CHARTS_DIR), renderChart(FAST_OPERATIONS, dictionaries, fastResults));
   await writeFile(new URL('fromArray.svg', CHARTS_DIR), renderChart(BUILD_OPERATIONS, dictionaries, slowResults));
   await writeFile(new URL('serialize.svg', CHARTS_DIR), renderChart(SERIALIZE_OPERATIONS, dictionaries, slowResults));
-  await writeFile(
-    new URL('deserialize.svg', CHARTS_DIR),
-    renderChart(DESERIALIZE_OPERATIONS, dictionaries, slowResults),
-  );
 
   console.log('Updating README.md...');
   const original = await readFile(README_PATH, 'utf8');
@@ -90,11 +89,6 @@ const main = async (): Promise<void> => {
   updated = replaceBetween(updated, FAST_MARKER, `![Fast operations chart](${CHARTS_URL_BASE}/fast.svg)`);
   updated = replaceBetween(updated, BUILD_MARKER, `![Gaddag.fromArray chart](${CHARTS_URL_BASE}/fromArray.svg)`);
   updated = replaceBetween(updated, SERIALIZE_MARKER, `![Serialize chart](${CHARTS_URL_BASE}/serialize.svg)`);
-  updated = replaceBetween(
-    updated,
-    DESERIALIZE_MARKER,
-    `![Gaddag.deserialize chart](${CHARTS_URL_BASE}/deserialize.svg)`,
-  );
 
   if (updated !== original) {
     await writeFile(README_PATH, updated);
@@ -200,6 +194,9 @@ const runFast = async (dictionary: Dictionary): Promise<Map<string, number>> => 
     .add('getArc', () => {
       gaddag.getArc(arcRefs[arcIndex], arcLetters[arcIndex]);
       arcIndex = (arcIndex + 1) & arcMask;
+    })
+    .add('Gaddag.deserialize', () => {
+      Gaddag.deserialize(dictionary.serialized);
     });
 
   await bench.run();
@@ -267,17 +264,13 @@ const runSlow = async (dictionary: Dictionary): Promise<Map<string, number>> => 
   });
   await buildBench.run();
 
-  const serializationBench = new Bench({ time: BENCH_TIME });
-  serializationBench
-    .add('serialize', () => {
-      dictionary.gaddag.serialize();
-    })
-    .add('Gaddag.deserialize', () => {
-      Gaddag.deserialize(dictionary.serialized);
-    });
-  await serializationBench.run();
+  const serializeBench = new Bench({ time: BENCH_TIME });
+  serializeBench.add('serialize', () => {
+    dictionary.gaddag.serialize();
+  });
+  await serializeBench.run();
 
-  return new Map([...collectResults(buildBench), ...collectResults(serializationBench)]);
+  return new Map([...collectResults(buildBench), ...collectResults(serializeBench)]);
 };
 
 const collectResults = (bench: Bench): Map<string, number> => {

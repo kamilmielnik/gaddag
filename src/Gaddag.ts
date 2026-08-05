@@ -1,20 +1,8 @@
 import { encodeWords, generateItems, insertItems, scanWords, sortItems } from './buildGaddag.ts';
-import {
-  HEADER_BYTES,
-  LAST_ARC_FLAG,
-  LETTER_MASK,
-  MAGIC,
-  MAX_LETTERS,
-  MAX_WORD_LENGTH,
-  SEPARATOR,
-} from './constants.ts';
-import { type DeserializeOptions } from './types.ts';
+import { HEADER_BYTES, LAST_ARC_FLAG, LETTER_MASK, MAGIC, MAX_LETTERS, SEPARATOR } from './constants.ts';
 
 /** Char codes are UTF-16 code units, so serialized alphabets cannot exceed this. */
 const MAX_CHAR_CODE = 0xffff;
-
-/** Deepest arc path `serialize` can write: a maximum-length word behind its separator. */
-const MAX_STATE_DEPTH = MAX_WORD_LENGTH + 1;
 
 /**
  * A GADDAG (Gordon, 1994) stored as flat typed arrays for speed and compact serialization.
@@ -69,15 +57,14 @@ export class Gaddag {
    * Zero-copy: when `bytes` is 4-byte aligned, the returned Gaddag reads from the
    * given buffer directly — do not mutate it afterwards.
    *
-   * Throws when the data was not written by a compatible version, is not exactly
-   * the serialized length, or does not describe a well-formed automaton — one
-   * with letter-sorted, duplicate-free states whose walks all terminate within
-   * the depth of a maximum-length word. The structural pass that establishes
-   * the latter reads every arc once; skip it with
-   * {@link DeserializeOptions.trusted} for self-produced data.
+   * Throws when the data was not written by a compatible version or is not
+   * exactly the serialized length. The arcs themselves are trusted — garbage in,
+   * garbage out: on bytes not produced by {@link Gaddag.serialize}, this class's
+   * lookups terminate but may answer incorrectly, and a traversal you write on
+   * top can loop forever on a cycle or overflow the stack on a deep chain.
+   * Only deserialize data you serialized yourself.
    */
-  public static deserialize(bytes: Uint8Array, options: DeserializeOptions = {}): Gaddag {
-    const { trusted = false } = options;
+  public static deserialize(bytes: Uint8Array): Gaddag {
     // Note: an explicit copy (not .slice()) — Buffer.prototype.slice returns a
     // view that would keep the misaligned byteOffset.
     const aligned = bytes.byteOffset % 4 === 0 ? bytes : new Uint8Array(bytes);
@@ -143,56 +130,6 @@ export class Gaddag {
 
     if (rootArcIndex > 1 && arcLabels[rootArcIndex - 1] < LAST_ARC_FLAG) {
       throw new Error('Invalid Gaddag data');
-    }
-
-    // Every arc of a state targets a state that begins before that state's first
-    // arc — the builder freezes a state only once all of its children are. Bounding
-    // a target by its own arc index instead would admit a state's later arc looping
-    // back into the state, a cycle that makes enumeration run forever; so the bound
-    // tracks each state's first arc (states run until LAST_ARC_FLAG). This also
-    // rejects out-of-range, negative, and out-of-alphabet arcs, which is what leaves
-    // every walk of the automaton — this class's own, and any a caller writes — finite.
-    // Letters must also be strictly ascending within each state — the order
-    // getArc's early-exit scan assumes; mis-sorted or duplicated arcs would
-    // silently drop words.
-    // Finite is still not enough: a chain of thousands of one-arc states walks
-    // to its end, yet spells a word no fromArray input can produce and overflows
-    // the stack of any traversal that recurses per letter. Each state's longest
-    // outgoing path is therefore bounded by MAX_STATE_DEPTH, with depths recorded
-    // per arc rather than per state, so a target pointing into the middle of a
-    // state cannot hide the depth behind it.
-    if (!trusted) {
-      const depths = new Uint8Array(arcCount);
-      let stateStart = 1;
-      let previousLetter = -1;
-      let stateDepth = 0;
-
-      for (let index = 1; index < arcCount; ++index) {
-        const label = arcLabels[index];
-        const letter = label & LETTER_MASK;
-        const target = arcTargets[index] >>> 1;
-
-        if (target >= stateStart || letter > letterCount || letter <= previousLetter) {
-          throw new Error('Invalid Gaddag data');
-        }
-
-        if (depths[target] >= stateDepth) {
-          stateDepth = depths[target] + 1;
-        }
-
-        if (label >= LAST_ARC_FLAG) {
-          if (stateDepth > MAX_STATE_DEPTH) {
-            throw new Error('Invalid Gaddag data');
-          }
-
-          depths.fill(stateDepth, stateStart, index + 1);
-          stateStart = index + 1;
-          previousLetter = -1;
-          stateDepth = 0;
-        } else {
-          previousLetter = letter;
-        }
-      }
     }
 
     return new Gaddag(arcLabels, arcTargets, rootRef, charCodes);

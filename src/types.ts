@@ -30,15 +30,3 @@ export interface GaddagArcs {
   arcTargets: Int32Array;
   rootRef: number;
 }
-
-/** Options of `Gaddag.deserialize`. */
-export interface DeserializeOptions {
-  /**
-   * Skips the structural pass over the arcs — the pass that rules out cycles,
-   * out-of-range targets, mis-sorted states, and paths deeper than any
-   * serialized word. Only skip it for data this library produced itself:
-   * on crafted input, the automaton can send arc-following code into an
-   * endless loop.
-   */
-  trusted?: boolean;
-}

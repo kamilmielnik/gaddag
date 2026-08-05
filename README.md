@@ -22,7 +22,7 @@
 
 - [Highly performant](#performance)
 - No dependencies
-- Backed by flat typed arrays — compact in memory, [milliseconds to deserialize](#performance) (microseconds when the data is [trusted](#deserializing-untrusted-data))
+- Backed by flat typed arrays — compact in memory, [microseconds to deserialize](#performance)
 - Built for [Scrabble Solver](https://github.com/kamilmielnik/scrabble-solver)
 - CJS & ESM compatible
 
@@ -35,7 +35,7 @@ A GADDAG is a minimized automaton that, for every word `w` and every split point
   - [Word API](#word-api)
   - [Arc API](#arc-api)
 - [Limits](#limits)
-- [Deserializing untrusted data](#deserializing-untrusted-data)
+- [Garbage in, garbage out](#garbage-in-garbage-out)
 - [Examples](#examples)
   - [Load a dictionary from a file](#load-a-dictionary-from-a-file)
   - [Serialize a GADDAG to a file](#serialize-a-gaddag-to-a-file)
@@ -63,7 +63,7 @@ See full [API Docs](https://github.com/kamilmielnik/gaddag/blob/master/docs/READ
 Good to know:
 
 - a [`Gaddag`](https://github.com/kamilmielnik/gaddag/blob/master/docs/classes/Gaddag.md) is immutable — to change the dictionary, build a new one with [`Gaddag.fromArray`](https://github.com/kamilmielnik/gaddag/blob/master/docs/classes/Gaddag.md#fromarray)
-- [`Gaddag.deserialize`](https://github.com/kamilmielnik/gaddag/blob/master/docs/classes/Gaddag.md#deserialize) checks that the data describes a well-formed automaton, reading each arc once; pass `{ trusted: true }` to skip that pass for data you produced yourself — see [Deserializing untrusted data](#deserializing-untrusted-data)
+- [`Gaddag.deserialize`](https://github.com/kamilmielnik/gaddag/blob/master/docs/classes/Gaddag.md#deserialize) checks only the header and the alphabet, trusting the arcs — see [Garbage in, garbage out](#garbage-in-garbage-out)
 - immutability is not enforced: the backing typed arrays are exposed directly (and shared with the input of [`Gaddag.deserialize`](https://github.com/kamilmielnik/gaddag/blob/master/docs/classes/Gaddag.md#deserialize) when it is 4-byte aligned) — treat them as read-only, writing to them corrupts the automaton
 - all exports are named (there is no default export)
 - `MAX_LETTERS`, `MAX_WORD_LENGTH`, and `MAX_WORDS` are described in [Limits](#limits)
@@ -129,21 +129,14 @@ Distinct characters (`MAX_LETTERS`) and word length (`MAX_WORD_LENGTH`) are coun
 
 Empty words are skipped; a non-string entry throws. Duplicated words and unsorted input are fine — the same minimal automaton is produced regardless of word order.
 
-# Deserializing untrusted data
+# Garbage in, garbage out
 
-`Gaddag.deserialize` rejects data that does not describe a well-formed automaton: every state's arcs are sorted with no duplicate letters, and no walk runs deeper than `MAX_WORD_LENGTH` + 1 arcs — the longest sequence `serialize` can write — so following arcs always terminates, through `has`, `hasPrefix`, `getArc`, and any traversal you write on top of them. The check reads every arc once, which is the bulk of what deserialization costs; `{ trusted: true }` skips it:
+`Gaddag.deserialize` rejects a wrong magic number, a wrong byte length, and a malformed alphabet — cheap header checks. It does not walk the arcs, so nothing verifies that the bytes describe a well-formed automaton. On bytes that did not come from `Gaddag.serialize`:
 
-```TypeScript
-const gaddag = Gaddag.deserialize(bytes, { trusted: true }); // only for data you serialized yourself
-```
+- `has`, `hasPrefix`, and `getArc` terminate, but may answer incorrectly
+- a traversal you write on top — like [Find all words with a given prefix](#find-all-words-with-a-given-prefix) — can loop forever on a cycle, or overflow the stack on a chain of states deeper than any real word
 
-Skipping the check on data you did not produce is what an attacker needs: a handful of crafted bytes can describe a cycle — an automaton accepting an infinite language, sending any code that walks it into an endless loop — or a chain of states deep enough to overflow the stack of a recursive traversal.
-
-The check is what the [deserialization benchmark](#performance) measures, and it dominates the cost — the rest of deserializing is a few typed-array views over the buffer, so `{ trusted: true }` is roughly three orders of magnitude faster.
-
-Even with the check, the automaton's *size* is still whatever the file says it is. Enumerating every word (as in [Find all words with a given prefix](#find-all-words-with-a-given-prefix)) does work proportional to the number of words encoded, and a crafted file can encode enormous numbers of them from a modest file. Bound the output if the data is not yours.
-
-The check also proves termination, not provenance: a validated file need not be the image of any word list. It can hold arcs `serialize` never writes — a separator arc behind the first separator, an arc with target `0`, a path spelling a word of `MAX_WORD_LENGTH` + 1 letters, or a root with arcs yet no words behind them, which is what `hasPrefix('')` reports on. Code enumerating untrusted automatons should not assume word-list shape; this is why [Find all words with a given prefix](#find-all-words-with-a-given-prefix) skips separator arcs while collecting suffixes.
+Only deserialize data you serialized yourself. To load a word list from a source you do not control, build from text with `Gaddag.fromArray` instead.
 
 # Examples
 
@@ -187,13 +180,13 @@ const buffer = await readFile('dictionary.gaddag');
 const gaddag = Gaddag.deserialize(buffer);
 ```
 
-`Gaddag.deserialize` validates the file's structure. If you wrote the file yourself and want the fastest possible load, see [Deserializing untrusted data](#deserializing-untrusted-data).
+`Gaddag.deserialize` trusts the file's content beyond cheap header checks — see [Garbage in, garbage out](#garbage-in-garbage-out).
 
 ## Find all words with a given prefix
 
 A GADDAG stores `reverse(prefix) + ◇ + suffix` paths, so all words starting with a prefix live behind a single separator arc: follow the reversed prefix, cross `◇`, and collect every suffix.
 
-`collectWords` below recurses as deep as the words are long — at most `MAX_WORD_LENGTH` + 1 frames for a dictionary you built or deserialized without `{ trusted: true }`. How many words it returns is a different matter: a crafted file can encode enormous numbers of them — see [Deserializing untrusted data](#deserializing-untrusted-data).
+`collectWords` below recurses as deep as the words are long — at most `MAX_WORD_LENGTH` + 1 frames for a dictionary built from a word list. Foreign bytes carry no such bound — see [Garbage in, garbage out](#garbage-in-garbage-out).
 
 ```TypeScript
 import { Gaddag, LAST_ARC_FLAG, LETTER_MASK, SEPARATOR } from '@kamilmielnik/gaddag';
@@ -229,19 +222,14 @@ const collectWords = (gaddag: Gaddag, ref: number, word: string, words: string[]
   for (;;) {
     const label = gaddag.arcLabels[index];
     const letter = label & LETTER_MASK;
+    const target = gaddag.arcTargets[index];
+    const next = word + String.fromCharCode(gaddag.charCodes[letter - 1]);
 
-    // A word list never yields a separator arc here, but a crafted (yet valid)
-    // file can — see "Deserializing untrusted data".
-    if (letter !== SEPARATOR) {
-      const target = gaddag.arcTargets[index];
-      const next = word + String.fromCharCode(gaddag.charCodes[letter - 1]);
-
-      if ((target & 1) === 1) {
-        words.push(next);
-      }
-
-      collectWords(gaddag, target, next, words);
+    if ((target & 1) === 1) {
+      words.push(next);
     }
+
+    collectWords(gaddag, target, next, words);
 
     if (label & LAST_ARC_FLAG) {
       return;
@@ -279,7 +267,3 @@ Benchmarks are produced by [`bench/index.ts`](https://github.com/kamilmielnik/ga
 <!-- BENCH:serialize:start -->
 ![Serialize chart](https://raw.githubusercontent.com/kamilmielnik/gaddag/master/bench/charts/serialize.svg)
 <!-- BENCH:serialize:end -->
-
-<!-- BENCH:deserialize:start -->
-![Gaddag.deserialize chart](https://raw.githubusercontent.com/kamilmielnik/gaddag/master/bench/charts/deserialize.svg)
-<!-- BENCH:deserialize:end -->

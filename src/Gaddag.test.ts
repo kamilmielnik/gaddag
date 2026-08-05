@@ -1,62 +1,11 @@
 import { describe, expect, it } from 'bun:test';
 
-import {
-  HEADER_BYTES,
-  LAST_ARC_FLAG,
-  LETTER_MASK,
-  MAGIC,
-  MAX_LETTERS,
-  MAX_WORD_LENGTH,
-  SEPARATOR,
-} from './constants.ts';
+import { HEADER_BYTES, LAST_ARC_FLAG, LETTER_MASK, MAX_LETTERS, MAX_WORD_LENGTH, SEPARATOR } from './constants.ts';
 import { Gaddag } from './Gaddag.ts';
 
 const arcTargetsOf = (bytes: Uint8Array): Int32Array => {
   const [, letterCount, arcCount] = new Int32Array(bytes.buffer, 0, 4);
   return new Int32Array(bytes.buffer, HEADER_BYTES + 4 * letterCount, arcCount);
-};
-
-const arcLabelsOf = (bytes: Uint8Array): Uint8Array => {
-  const [, letterCount, arcCount] = new Int32Array(bytes.buffer, 0, 4);
-  return new Uint8Array(bytes.buffer, HEADER_BYTES + 4 * (letterCount + arcCount), arcCount);
-};
-
-const firstMultiArcStateOf = (labels: Uint8Array): number => {
-  let stateStart = 1;
-
-  for (let index = 1; index < labels.length; ++index) {
-    if (labels[index] >= LAST_ARC_FLAG) {
-      if (index > stateStart) {
-        return stateStart;
-      }
-
-      stateStart = index + 1;
-    }
-  }
-
-  throw new Error('No multi-arc state in the automaton');
-};
-
-// A chain of `stateCount` single-arc states, each targeting the one before it —
-// a structurally valid automaton spelling 'a'.repeat(stateCount), at any depth.
-const chainOf = (stateCount: number): Uint8Array => {
-  const arcCount = stateCount + 1;
-  const bytes = new Uint8Array(HEADER_BYTES + 4 * (1 + arcCount) + arcCount);
-  const header = new Int32Array(bytes.buffer, 0, 4);
-  header[0] = MAGIC;
-  header[1] = 1;
-  header[2] = arcCount;
-  header[3] = stateCount << 1;
-  new Int32Array(bytes.buffer, HEADER_BYTES, 1)[0] = 'a'.charCodeAt(0);
-  const targets = new Int32Array(bytes.buffer, HEADER_BYTES + 4, arcCount);
-  const labels = new Uint8Array(bytes.buffer, HEADER_BYTES + 4 * (1 + arcCount), arcCount);
-
-  for (let state = 1; state <= stateCount; ++state) {
-    labels[state] = 1 | LAST_ARC_FLAG;
-    targets[state] = state === 1 ? 1 : (state - 1) << 1;
-  }
-
-  return bytes;
 };
 
 const WORDS = [
@@ -429,71 +378,6 @@ describe('Gaddag', () => {
       expect(() => Gaddag.deserialize(bytes)).toThrow('Invalid Gaddag data');
     });
 
-    it('rejects data whose arc target points at itself', () => {
-      // A self-loop makes the automaton accept an infinite language, and any
-      // traversal following targets never stops.
-      const bytes = Gaddag.fromArray(WORDS).serialize();
-      arcTargetsOf(bytes)[1] = 1 << 1;
-      expect(() => Gaddag.deserialize(bytes)).toThrow('Invalid Gaddag data');
-    });
-
-    it('rejects data whose arc target points at a later arc', () => {
-      const bytes = Gaddag.fromArray(WORDS).serialize();
-      const targets = arcTargetsOf(bytes);
-      targets[1] = targets.length << 1;
-      expect(() => Gaddag.deserialize(bytes)).toThrow('Invalid Gaddag data');
-    });
-
-    it('rejects data whose arc target is negative', () => {
-      const bytes = Gaddag.fromArray(WORDS).serialize();
-      arcTargetsOf(bytes)[1] = -1;
-      expect(() => Gaddag.deserialize(bytes)).toThrow('Invalid Gaddag data');
-    });
-
-    it('rejects a cycle formed by a state arc looping back into its own state', () => {
-      // Point the root's second arc at the root's own first arc. The target begins
-      // before this arc's index, so a per-arc bound would accept it — but it begins
-      // inside this arc's state, which is a cycle that makes enumeration loop forever.
-      const gaddag = Gaddag.fromArray(WORDS);
-      const bytes = gaddag.serialize();
-      const rootFirstArc = gaddag.rootRef >>> 1;
-      arcTargetsOf(bytes)[rootFirstArc + 1] = rootFirstArc << 1;
-      expect(() => Gaddag.deserialize(bytes)).toThrow('Invalid Gaddag data');
-    });
-
-    it('rejects data with an arc letter outside the alphabet', () => {
-      // An out-of-alphabet arc letter has no char code, so enumerating it would read
-      // past charCodes and spell a word from a missing letter.
-      const bytes = Gaddag.fromArray(WORDS).serialize();
-      const labels = arcLabelsOf(bytes);
-      labels[1] = (labels[1] & LAST_ARC_FLAG) | MAX_LETTERS;
-      expect(() => Gaddag.deserialize(bytes)).toThrow('Invalid Gaddag data');
-    });
-
-    it('rejects data whose state arcs are not sorted by letter', () => {
-      // getArc's early-exit scan assumes sorted arcs — a mis-sorted state would
-      // silently hide the letter that now comes second. Targets are swapped along
-      // with the letters, so only the letter order is invalid.
-      const bytes = Gaddag.fromArray(WORDS).serialize();
-      const labels = arcLabelsOf(bytes);
-      const targets = arcTargetsOf(bytes);
-      const first = firstMultiArcStateOf(labels);
-      const second = first + 1;
-      const firstLetter = labels[first] & LETTER_MASK;
-      labels[first] = (labels[first] & LAST_ARC_FLAG) | (labels[second] & LETTER_MASK);
-      labels[second] = (labels[second] & LAST_ARC_FLAG) | firstLetter;
-      [targets[first], targets[second]] = [targets[second], targets[first]];
-      expect(() => Gaddag.deserialize(bytes)).toThrow('Invalid Gaddag data');
-    });
-
-    it('rejects data with duplicate letters within a state', () => {
-      const bytes = Gaddag.fromArray(WORDS).serialize();
-      const labels = arcLabelsOf(bytes);
-      const first = firstMultiArcStateOf(labels);
-      labels[first + 1] = (labels[first + 1] & LAST_ARC_FLAG) | (labels[first] & LETTER_MASK);
-      expect(() => Gaddag.deserialize(bytes)).toThrow('Invalid Gaddag data');
-    });
-
     it('rejects a root ref that does not point at the first arc of a state', () => {
       // The constructor's root-arc scan starting mid-state would silently drop
       // the root arcs in front of it.
@@ -503,33 +387,18 @@ describe('Gaddag', () => {
       expect(() => Gaddag.deserialize(bytes)).toThrow('Invalid Gaddag data');
     });
 
-    it('accepts the structural pass on every dictionary it writes', () => {
-      // The last entry produces the deepest possible automaton: a maximum-length
-      // word split behind a separator, right at the structural pass's depth bound.
+    it('accepts every dictionary it serializes', () => {
       for (const words of [WORDS, [], ['a'], ['💚a', '💙b'], ['a'.repeat(MAX_WORD_LENGTH)]]) {
         expect(() => Gaddag.deserialize(Gaddag.fromArray(words).serialize())).not.toThrow();
       }
     });
 
-    it('accepts a chain as deep as a maximum-length word with its separator', () => {
-      const gaddag = Gaddag.deserialize(chainOf(MAX_WORD_LENGTH + 1));
-
-      expect(gaddag.has('a'.repeat(MAX_WORD_LENGTH + 1))).toBe(true);
-    });
-
-    it('rejects data whose arc paths run deeper than any serialized word', () => {
-      // A deep chain is finite yet spells a word fromArray could never accept,
-      // and it overflows the stack of any traversal that recurses per letter.
-      expect(() => Gaddag.deserialize(chainOf(MAX_WORD_LENGTH + 2))).toThrow('Invalid Gaddag data');
-      expect(() => Gaddag.deserialize(chainOf(100_000))).toThrow('Invalid Gaddag data');
-    });
-
-    it('skips the structural pass for trusted data', () => {
+    it('trusts the arcs — garbage in, garbage out', () => {
       const bytes = Gaddag.fromArray(WORDS).serialize();
       const targets = arcTargetsOf(bytes);
       targets[1] = 1 << 1;
 
-      const deserialized = Gaddag.deserialize(bytes, { trusted: true });
+      const deserialized = Gaddag.deserialize(bytes);
       expect(deserialized.arcTargets[1]).toBe(1 << 1);
     });
 

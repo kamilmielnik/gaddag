@@ -13,26 +13,30 @@
 <line x1="84" y1="24" x2="720" y2="24" stroke="#eee" stroke-width="1"/>
 <text x="76" y="28" text-anchor="end" fill="#555">50M</text>
 <text x="22" y="187" text-anchor="middle" fill="#555" transform="rotate(-90 22 187)">ops / sec</text>
-<rect x="96.0" y="300.4" width="32.4" height="49.6" fill="#3b82f6"><title>🇺🇸 en-US · has (hit): 7.60M ops/sec</title></rect>
-<rect x="130.4" y="305.5" width="32.4" height="44.5" fill="#10b981"><title>🇬🇧 en-GB · has (hit): 6.83M ops/sec</title></rect>
-<rect x="164.8" y="319.0" width="32.4" height="31.0" fill="#f59e0b"><title>🇵🇱 pl-PL · has (hit): 4.76M ops/sec</title></rect>
-<text x="147.6" y="376" text-anchor="middle" fill="#111" font-weight="600" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">has (hit)</text>
-<rect x="223.2" y="291.5" width="32.4" height="58.5" fill="#3b82f6"><title>🇺🇸 en-US · has (miss): 8.97M ops/sec</title></rect>
-<rect x="257.6" y="296.3" width="32.4" height="53.7" fill="#10b981"><title>🇬🇧 en-GB · has (miss): 8.24M ops/sec</title></rect>
-<rect x="292.0" y="313.5" width="32.4" height="36.5" fill="#f59e0b"><title>🇵🇱 pl-PL · has (miss): 5.60M ops/sec</title></rect>
-<text x="274.8" y="376" text-anchor="middle" fill="#111" font-weight="600" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">has (miss)</text>
-<rect x="350.4" y="226.8" width="32.4" height="123.2" fill="#3b82f6"><title>🇺🇸 en-US · hasPrefix (hit): 18.90M ops/sec</title></rect>
-<rect x="384.8" y="235.1" width="32.4" height="114.9" fill="#10b981"><title>🇬🇧 en-GB · hasPrefix (hit): 17.62M ops/sec</title></rect>
-<rect x="419.2" y="232.5" width="32.4" height="117.5" fill="#f59e0b"><title>🇵🇱 pl-PL · hasPrefix (hit): 18.03M ops/sec</title></rect>
-<text x="402" y="376" text-anchor="middle" fill="#111" font-weight="600" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">hasPrefix (hit)</text>
-<rect x="477.6" y="215.5" width="32.4" height="134.5" fill="#3b82f6"><title>🇺🇸 en-US · hasPrefix (miss): 20.63M ops/sec</title></rect>
-<rect x="512.0" y="229.4" width="32.4" height="120.6" fill="#10b981"><title>🇬🇧 en-GB · hasPrefix (miss): 18.50M ops/sec</title></rect>
-<rect x="546.4" y="219.7" width="32.4" height="130.3" fill="#f59e0b"><title>🇵🇱 pl-PL · hasPrefix (miss): 19.99M ops/sec</title></rect>
-<text x="529.2" y="376" text-anchor="middle" fill="#111" font-weight="600" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">hasPrefix (miss)</text>
-<rect x="604.8" y="138.8" width="32.4" height="211.2" fill="#3b82f6"><title>🇺🇸 en-US · getArc: 32.39M ops/sec</title></rect>
-<rect x="639.2" y="175.4" width="32.4" height="174.6" fill="#10b981"><title>🇬🇧 en-GB · getArc: 26.78M ops/sec</title></rect>
-<rect x="673.6" y="181.4" width="32.4" height="168.6" fill="#f59e0b"><title>🇵🇱 pl-PL · getArc: 25.86M ops/sec</title></rect>
-<text x="656.4" y="376" text-anchor="middle" fill="#111" font-weight="600" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">getArc</text>
+<rect x="96.0" y="297.5" width="25.3" height="52.5" fill="#3b82f6"><title>🇺🇸 en-US · has (hit): 8.06M ops/sec</title></rect>
+<rect x="123.3" y="303.1" width="25.3" height="46.9" fill="#10b981"><title>🇬🇧 en-GB · has (hit): 7.19M ops/sec</title></rect>
+<rect x="150.7" y="317.7" width="25.3" height="32.3" fill="#f59e0b"><title>🇵🇱 pl-PL · has (hit): 4.96M ops/sec</title></rect>
+<text x="137" y="376" text-anchor="middle" fill="#111" font-weight="600" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">has (hit)</text>
+<rect x="202.0" y="292.9" width="25.3" height="57.1" fill="#3b82f6"><title>🇺🇸 en-US · has (miss): 8.75M ops/sec</title></rect>
+<rect x="229.3" y="296.2" width="25.3" height="53.8" fill="#10b981"><title>🇬🇧 en-GB · has (miss): 8.24M ops/sec</title></rect>
+<rect x="256.7" y="310.5" width="25.3" height="39.5" fill="#f59e0b"><title>🇵🇱 pl-PL · has (miss): 6.07M ops/sec</title></rect>
+<text x="243" y="376" text-anchor="middle" fill="#111" font-weight="600" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">has (miss)</text>
+<rect x="308.0" y="230.5" width="25.3" height="119.5" fill="#3b82f6"><title>🇺🇸 en-US · hasPrefix (hit): 18.33M ops/sec</title></rect>
+<rect x="335.3" y="236.4" width="25.3" height="113.6" fill="#10b981"><title>🇬🇧 en-GB · hasPrefix (hit): 17.42M ops/sec</title></rect>
+<rect x="362.7" y="229.3" width="25.3" height="120.7" fill="#f59e0b"><title>🇵🇱 pl-PL · hasPrefix (hit): 18.51M ops/sec</title></rect>
+<text x="349" y="376" text-anchor="middle" fill="#111" font-weight="600" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">hasPrefix (hit)</text>
+<rect x="414.0" y="209.9" width="25.3" height="140.1" fill="#3b82f6"><title>🇺🇸 en-US · hasPrefix (miss): 21.49M ops/sec</title></rect>
+<rect x="441.3" y="232.1" width="25.3" height="117.9" fill="#10b981"><title>🇬🇧 en-GB · hasPrefix (miss): 18.08M ops/sec</title></rect>
+<rect x="468.7" y="216.8" width="25.3" height="133.2" fill="#f59e0b"><title>🇵🇱 pl-PL · hasPrefix (miss): 20.43M ops/sec</title></rect>
+<text x="455" y="376" text-anchor="middle" fill="#111" font-weight="600" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">hasPrefix (miss)</text>
+<rect x="520.0" y="140.9" width="25.3" height="209.1" fill="#3b82f6"><title>🇺🇸 en-US · getArc: 32.07M ops/sec</title></rect>
+<rect x="547.3" y="177.3" width="25.3" height="172.7" fill="#10b981"><title>🇬🇧 en-GB · getArc: 26.49M ops/sec</title></rect>
+<rect x="574.7" y="179.3" width="25.3" height="170.7" fill="#f59e0b"><title>🇵🇱 pl-PL · getArc: 26.18M ops/sec</title></rect>
+<text x="561" y="376" text-anchor="middle" fill="#111" font-weight="600" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">getArc</text>
+<rect x="626.0" y="314.7" width="25.3" height="35.3" fill="#3b82f6"><title>🇺🇸 en-US · Gaddag.deserialize: 5.42M ops/sec</title></rect>
+<rect x="653.3" y="316.2" width="25.3" height="33.8" fill="#10b981"><title>🇬🇧 en-GB · Gaddag.deserialize: 5.18M ops/sec</title></rect>
+<rect x="680.7" y="325.4" width="25.3" height="24.6" fill="#f59e0b"><title>🇵🇱 pl-PL · Gaddag.deserialize: 3.77M ops/sec</title></rect>
+<text x="667" y="376" text-anchor="middle" fill="#111" font-weight="600" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">Gaddag.deserialize</text>
 <rect x="744" y="24" width="14" height="14" rx="2" fill="#3b82f6"/>
 <text x="766" y="35" fill="#222" font-weight="600">🇺🇸 en-US</text>
 <text x="766" y="51" fill="#666" font-size="11">TWL06 · 178,691 words</text>
