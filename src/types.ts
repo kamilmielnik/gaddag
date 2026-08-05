@@ -1,7 +1,11 @@
 /** Letters of a word list, indexed 1..63 in ascending code-unit order (0 is the separator). */
 export interface Alphabet {
   charCodes: Int32Array;
-  /** Letter index of each UTF-16 code unit, 0 when the code unit is not in the alphabet. */
+  /**
+   * Letter index of each UTF-16 code unit, 0 when the code unit is not in the alphabet. 0 is also
+   * the separator's letter index, so do not pass misses on to `Gaddag.getArc` — `Gaddag.getLetter`
+   * answers -1 for them instead.
+   */
   letterByCharCode: Int32Array;
 }
 

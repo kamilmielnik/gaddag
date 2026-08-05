@@ -6,7 +6,7 @@
 
 # Interface: DeserializeOptions
 
-Defined in: [types.ts:31](https://github.com/kamilmielnik/gaddag/blob/master/src/types.ts#L31)
+Defined in: [types.ts:35](https://github.com/kamilmielnik/gaddag/blob/master/src/types.ts#L35)
 
 Options of `Gaddag.deserialize`.
 
@@ -16,7 +16,7 @@ Options of `Gaddag.deserialize`.
 
 > `optional` **trusted?**: `boolean`
 
-Defined in: [types.ts:39](https://github.com/kamilmielnik/gaddag/blob/master/src/types.ts#L39)
+Defined in: [types.ts:43](https://github.com/kamilmielnik/gaddag/blob/master/src/types.ts#L43)
 
 Skips the structural pass over the arcs — the pass that rules out cycles,
 out-of-range targets, mis-sorted states, and paths deeper than any

@@ -201,7 +201,8 @@ export class Gaddag {
   /**
    * Wraps pre-built arrays without any validation — prefer {@link Gaddag.fromArray}
    * and {@link Gaddag.deserialize}. Lookups on invalid arrays terminate but
-   * return incorrect results.
+   * return incorrect results. The code-unit → letter table is derived from
+   * `charCodes`, so an `Alphabet`'s `letterByCharCode` is not needed here.
    */
   constructor(arcLabels: Uint8Array, arcTargets: Int32Array, rootRef: number, charCodes: Int32Array) {
     this.arcLabels = arcLabels;
@@ -273,7 +274,8 @@ export class Gaddag {
 
   /**
    * Returns whether any word in the dictionary starts with `prefix`.
-   * The empty prefix matches exactly when the dictionary is non-empty.
+   * The empty prefix matches exactly when the automaton has any arcs — for an
+   * automaton built from a word list, when the dictionary is non-empty.
    */
   public hasPrefix(prefix: string): boolean {
     if (prefix.length === 0) {
@@ -350,7 +352,10 @@ export class Gaddag {
     return 0;
   }
 
-  /** Maps a UTF-16 code unit to its letter index, or -1 when `charCode` is not an integer or not in the alphabet. */
+  /**
+   * Maps a UTF-16 code unit to its letter index, or -1 when `charCode` is not an integer or not in
+   * the alphabet — -1 rather than 0, because 0 is the separator, a valid {@link getArc} input.
+   */
   public getLetter(charCode: number): number {
     const letters = this.letterByCharCode;
     // A non-integer index reads `undefined` from the typed array.

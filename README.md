@@ -143,6 +143,8 @@ The check is what the [deserialization benchmark](#performance) measures, and it
 
 Even with the check, the automaton's *size* is still whatever the file says it is. Enumerating every word (as in [Find all words with a given prefix](#find-all-words-with-a-given-prefix)) does work proportional to the number of words encoded, and a crafted file can encode enormous numbers of them from a modest file. Bound the output if the data is not yours.
 
+The check also proves termination, not provenance: a validated file need not be the image of any word list. It can hold arcs `serialize` never writes — a separator arc behind the first separator, an arc with target `0`, a path spelling a word of `MAX_WORD_LENGTH` + 1 letters, or a root with arcs yet no words behind them, which is what `hasPrefix('')` reports on. Code enumerating untrusted automatons should not assume word-list shape; this is why [Find all words with a given prefix](#find-all-words-with-a-given-prefix) skips separator arcs while collecting suffixes.
+
 # Examples
 
 - [Load a dictionary from a file](#load-a-dictionary-from-a-file)
@@ -226,14 +228,20 @@ const collectWords = (gaddag: Gaddag, ref: number, word: string, words: string[]
 
   for (;;) {
     const label = gaddag.arcLabels[index];
-    const target = gaddag.arcTargets[index];
-    const next = word + String.fromCharCode(gaddag.charCodes[(label & LETTER_MASK) - 1]);
+    const letter = label & LETTER_MASK;
 
-    if ((target & 1) === 1) {
-      words.push(next);
+    // A word list never yields a separator arc here, but a crafted (yet valid)
+    // file can — see "Deserializing untrusted data".
+    if (letter !== SEPARATOR) {
+      const target = gaddag.arcTargets[index];
+      const next = word + String.fromCharCode(gaddag.charCodes[letter - 1]);
+
+      if ((target & 1) === 1) {
+        words.push(next);
+      }
+
+      collectWords(gaddag, target, next, words);
     }
-
-    collectWords(gaddag, target, next, words);
 
     if (label & LAST_ARC_FLAG) {
       return;

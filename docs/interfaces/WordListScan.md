@@ -6,7 +6,7 @@
 
 # Interface: WordListScan
 
-Defined in: [types.ts:9](https://github.com/kamilmielnik/gaddag/blob/master/src/types.ts#L9)
+Defined in: [types.ts:13](https://github.com/kamilmielnik/gaddag/blob/master/src/types.ts#L13)
 
 [Alphabet](Alphabet.md) of a word list plus the sizes of the words a Gaddag keeps (non-empty, within length limits).
 
@@ -32,7 +32,7 @@ Defined in: [types.ts:3](https://github.com/kamilmielnik/gaddag/blob/master/src/
 
 > **itemsCount**: `number`
 
-Defined in: [types.ts:11](https://github.com/kamilmielnik/gaddag/blob/master/src/types.ts#L11)
+Defined in: [types.ts:15](https://github.com/kamilmielnik/gaddag/blob/master/src/types.ts#L15)
 
 Total letters across kept words — one GADDAG sequence per letter.
 
@@ -42,9 +42,11 @@ Total letters across kept words — one GADDAG sequence per letter.
 
 > **letterByCharCode**: `Int32Array`
 
-Defined in: [types.ts:5](https://github.com/kamilmielnik/gaddag/blob/master/src/types.ts#L5)
+Defined in: [types.ts:9](https://github.com/kamilmielnik/gaddag/blob/master/src/types.ts#L9)
 
-Letter index of each UTF-16 code unit, 0 when the code unit is not in the alphabet.
+Letter index of each UTF-16 code unit, 0 when the code unit is not in the alphabet. 0 is also
+the separator's letter index, so do not pass misses on to `Gaddag.getArc` — `Gaddag.getLetter`
+answers -1 for them instead.
 
 #### Inherited from
 
@@ -56,6 +58,6 @@ Letter index of each UTF-16 code unit, 0 when the code unit is not in the alphab
 
 > **wordsCount**: `number`
 
-Defined in: [types.ts:13](https://github.com/kamilmielnik/gaddag/blob/master/src/types.ts#L13)
+Defined in: [types.ts:17](https://github.com/kamilmielnik/gaddag/blob/master/src/types.ts#L17)
 
 Number of kept words.

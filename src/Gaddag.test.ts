@@ -143,8 +143,9 @@ describe('Gaddag', () => {
       expect(gaddag.charCodes.length).toBe(5);
     });
 
-    it('answers prefix queries for a lone leading surrogate', () => {
+    it('answers prefix queries for lone surrogate code units', () => {
       const gaddag = Gaddag.fromArray(['💚a']);
+      // 💚's leading surrogate is in the alphabet; 💙's trailing surrogate is not.
       expect(gaddag.hasPrefix('💚'.charAt(0))).toBe(true);
       expect(gaddag.hasPrefix('💙'.charAt(1))).toBe(false);
     });

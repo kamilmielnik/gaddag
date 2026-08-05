@@ -6,7 +6,7 @@
 
 # Interface: EncodedWords
 
-Defined in: [types.ts:17](https://github.com/kamilmielnik/gaddag/blob/master/src/types.ts#L17)
+Defined in: [types.ts:21](https://github.com/kamilmielnik/gaddag/blob/master/src/types.ts#L21)
 
 A word list flattened into letter indices: word `i` spans `wordBytes[wordOffsets[i]..wordOffsets[i + 1])`.
 
@@ -16,7 +16,7 @@ A word list flattened into letter indices: word `i` spans `wordBytes[wordOffsets
 
 > **wordBytes**: `Uint8Array`
 
-Defined in: [types.ts:18](https://github.com/kamilmielnik/gaddag/blob/master/src/types.ts#L18)
+Defined in: [types.ts:22](https://github.com/kamilmielnik/gaddag/blob/master/src/types.ts#L22)
 
 ***
 
@@ -24,6 +24,6 @@ Defined in: [types.ts:18](https://github.com/kamilmielnik/gaddag/blob/master/src
 
 > **wordOffsets**: `Int32Array`
 
-Defined in: [types.ts:20](https://github.com/kamilmielnik/gaddag/blob/master/src/types.ts#L20)
+Defined in: [types.ts:24](https://github.com/kamilmielnik/gaddag/blob/master/src/types.ts#L24)
 
 One offset per word plus a final entry holding the total letter count.

@@ -28,6 +28,8 @@ Defined in: [types.ts:3](https://github.com/kamilmielnik/gaddag/blob/master/src/
 
 > **letterByCharCode**: `Int32Array`
 
-Defined in: [types.ts:5](https://github.com/kamilmielnik/gaddag/blob/master/src/types.ts#L5)
+Defined in: [types.ts:9](https://github.com/kamilmielnik/gaddag/blob/master/src/types.ts#L9)
 
-Letter index of each UTF-16 code unit, 0 when the code unit is not in the alphabet.
+Letter index of each UTF-16 code unit, 0 when the code unit is not in the alphabet. 0 is also
+the separator's letter index, so do not pass misses on to `Gaddag.getArc` — `Gaddag.getLetter`
+answers -1 for them instead.
