@@ -81,9 +81,10 @@ describe('Gaddag.fromArray', () => {
     expect(gaddag.has(`${word}a`)).toBe(false);
   });
 
-  it('throws when the alphabet exceeds 63 distinct characters', () => {
+  it('throws a RangeError when the alphabet exceeds 63 distinct characters', () => {
     const words = Array.from({ length: 64 }, (_, index) => String.fromCharCode(97 + index));
 
+    expect(() => Gaddag.fromArray(words)).toThrow(RangeError);
     expect(() => Gaddag.fromArray(words)).toThrow('Gaddag supports up to 63 distinct characters, got 64');
   });
 

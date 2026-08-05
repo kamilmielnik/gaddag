@@ -72,7 +72,7 @@ Arc labels: letter index | LAST_ARC_FLAG. Index 0 is an unused sentinel.
 
 Defined in: [Gaddag.ts:24](https://github.com/kamilmielnik/gaddag/blob/master/src/Gaddag.ts#L24)
 
-Arc targets: encoded state refs. Index 0 is an unused sentinel.
+Arc targets: encoded state refs, parallel to `arcLabels`.
 
 ***
 
@@ -190,7 +190,7 @@ Returns whether `word` is in the dictionary. The empty string never is.
 Defined in: [Gaddag.ts:217](https://github.com/kamilmielnik/gaddag/blob/master/src/Gaddag.ts#L217)
 
 Returns whether any word in the dictionary starts with `prefix`.
-The empty prefix matches exactly when the automaton has any arcs — for an
+The empty prefix matches exactly when the root state has any arcs — for an
 automaton built from a word list, when the dictionary is non-empty.
 
 #### Parameters

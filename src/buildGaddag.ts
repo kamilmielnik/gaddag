@@ -40,11 +40,11 @@ export const scanWords = (words: string[]): WordListScan => {
   }
 
   if (lettersCount > MAX_LETTERS) {
-    throw new Error(`Gaddag supports up to ${MAX_LETTERS} distinct characters, got ${lettersCount}`);
+    throw new RangeError(`Gaddag supports up to ${MAX_LETTERS} distinct characters, got ${lettersCount}`);
   }
 
   if (wordsCount > MAX_WORDS) {
-    throw new Error(`Gaddag supports up to ${MAX_WORDS} words, got ${wordsCount}`);
+    throw new RangeError(`Gaddag supports up to ${MAX_WORDS} words, got ${wordsCount}`);
   }
 
   const charCodes = new Int32Array(lettersCount);
@@ -310,7 +310,11 @@ const charAt = (item: number, depth: number, wordBytes: Uint8Array, wordOffsets:
   return depth <= wordOffsets[wordIndex + 1] - offset ? wordBytes[offset + depth - 1] + 1 : 0;
 };
 
-const MAX_DEPTH = MAX_WORD_LENGTH + 2;
+/** A GADDAG sequence is at most a maximum-length word behind its separator. */
+const MAX_SEQUENCE_LENGTH = MAX_WORD_LENGTH + 1;
+
+/** States along an insertion path sit at depths 0 (root) through MAX_SEQUENCE_LENGTH (deepest leaf). */
+const PATH_DEPTH_COUNT = MAX_SEQUENCE_LENGTH + 1;
 
 const MAX_ARCS_PER_STATE = MAX_LETTERS + 1;
 
@@ -323,8 +327,8 @@ export const insertItems = (items: Int32Array, wordBytes: Uint8Array, wordOffset
   const builder = new Builder();
   // Two buffers alternate: the builder keeps the last sequence for its common-prefix
   // comparison, so the next sequence must be built elsewhere.
-  let sequence = new Uint8Array(MAX_DEPTH);
-  let spare = new Uint8Array(MAX_DEPTH);
+  let sequence = new Uint8Array(MAX_SEQUENCE_LENGTH);
+  let spare = new Uint8Array(MAX_SEQUENCE_LENGTH);
 
   for (let index = 0; index < items.length; ++index) {
     const item = items[index];
@@ -394,10 +398,10 @@ class Builder {
     this.arcTop = 1;
     this.table = new Int32Array(INITIAL_CAPACITY);
     this.tableCount = 0;
-    this.pathLetters = new Uint8Array(MAX_DEPTH * MAX_ARCS_PER_STATE);
-    this.pathTargets = new Int32Array(MAX_DEPTH * MAX_ARCS_PER_STATE);
-    this.pathCounts = new Int32Array(MAX_DEPTH);
-    this.pathFinal = new Uint8Array(MAX_DEPTH);
+    this.pathLetters = new Uint8Array(PATH_DEPTH_COUNT * MAX_ARCS_PER_STATE);
+    this.pathTargets = new Int32Array(PATH_DEPTH_COUNT * MAX_ARCS_PER_STATE);
+    this.pathCounts = new Int32Array(PATH_DEPTH_COUNT);
+    this.pathFinal = new Uint8Array(PATH_DEPTH_COUNT);
     this.previous = new Uint8Array(0);
     this.previousLength = 0;
   }
@@ -533,7 +537,7 @@ class Builder {
 
   private appendArcs(base: number, count: number): number {
     if (this.arcTop + count > MAX_ARCS) {
-      throw new Error(`Gaddag supports up to ${MAX_ARCS} arcs`);
+      throw new RangeError(`Gaddag supports up to ${MAX_ARCS} arcs`);
     }
 
     if (this.arcTop + count > this.labels.length) {

@@ -9,8 +9,8 @@ export const MAX_WORD_LENGTH = 63;
 
 /**
  * Maximum number of words: a word index and a split position pack into one
- * 31-bit integer. `scanWords` — and so `Gaddag.fromArray` — throws when more
- * words remain after skipping empty and overlong ones.
+ * 31-bit integer. `scanWords` — and so `Gaddag.fromArray` — throws a
+ * `RangeError` when more words remain after skipping empty and overlong ones.
  */
 export const MAX_WORDS = 1 << 25;
 

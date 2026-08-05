@@ -20,7 +20,7 @@ export class Gaddag {
   /** Arc labels: letter index | LAST_ARC_FLAG. Index 0 is an unused sentinel. */
   public readonly arcLabels: Uint8Array;
 
-  /** Arc targets: encoded state refs. Index 0 is an unused sentinel. */
+  /** Arc targets: encoded state refs, parallel to `arcLabels`. */
   public readonly arcTargets: Int32Array;
 
   /** Ref of the root state. */
@@ -211,7 +211,7 @@ export class Gaddag {
 
   /**
    * Returns whether any word in the dictionary starts with `prefix`.
-   * The empty prefix matches exactly when the automaton has any arcs — for an
+   * The empty prefix matches exactly when the root state has any arcs — for an
    * automaton built from a word list, when the dictionary is non-empty.
    */
   public hasPrefix(prefix: string): boolean {

@@ -121,13 +121,15 @@ const isWord = (ref & 1) === 1; // true
 
 | Limit | Value | Behavior when exceeded |
 | --- | --- | --- |
-| Distinct characters (`MAX_LETTERS`) | 63 | `Gaddag.fromArray` throws — a letter index takes 6 bits, and `0` is reserved for the `◇` separator. |
+| Distinct characters (`MAX_LETTERS`) | 63 | `Gaddag.fromArray` throws a `RangeError` — a letter index takes 6 bits, and `0` is reserved for the `◇` separator. |
 | Word length (`MAX_WORD_LENGTH`) | 63 | The word is skipped — no board fits it anyway, and a split position takes 6 bits. |
-| Word count (`MAX_WORDS`) | 33,554,432 (`2^25`) | `Gaddag.fromArray` throws when more words remain after skipping — a word index and a split position pack into one 31-bit integer. |
+| Word count (`MAX_WORDS`) | 33,554,432 (`2^25`) | `Gaddag.fromArray` throws a `RangeError` when more words remain after skipping — a word index and a split position pack into one 31-bit integer. |
 
 Distinct characters (`MAX_LETTERS`) and word length (`MAX_WORD_LENGTH`) are counted in UTF-16 code units, not code points: a character outside the Basic Multilingual Plane (an emoji, a rare CJK ideograph) is a surrogate pair, so it takes two alphabet slots and two of a word's 63 characters. Words are matched consistently either way, and `hasPrefix` accepts a lone leading surrogate as a prefix.
 
-Empty words are skipped; a non-string entry throws. Duplicated words and unsorted input are fine — the same minimal automaton is produced regardless of word order.
+Code units are also matched without Unicode normalization: a precomposed `é` (one code unit) and its decomposed form `e` + combining accent (two code units) are different words. Normalize word lists and queries consistently — e.g. with [`String.prototype.normalize`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/normalize) — when they may mix forms.
+
+Empty words are skipped; a non-string entry throws a `TypeError`. Duplicated words and unsorted input are fine — the same minimal automaton is produced regardless of word order.
 
 # Garbage in, garbage out
 
