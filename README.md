@@ -14,7 +14,7 @@
 ----
 
 > [!WARNING]
-> This project — including this very warning — has been 100% LLM-generated. There is an experienced human in the driving seat — but he's asleep at the wheel and has no idea where he's going. Use it at your own risk.
+> This project — including this very warning — has been 100% LLM-generated. Use it at your own risk.
 
 ----
 
