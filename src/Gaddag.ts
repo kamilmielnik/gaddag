@@ -1,5 +1,6 @@
 import { encodeWords, generateItems, insertItems, scanWords, sortItems } from './buildGaddag.ts';
 import { HEADER_BYTES, LAST_ARC_FLAG, LETTER_MASK, MAGIC, MAX_LETTERS, SEPARATOR } from './constants.ts';
+import { type GaddagArcs } from './types.ts';
 
 /** Char codes are UTF-16 code units, so serialized alphabets cannot exceed this. */
 const MAX_CHAR_CODE = 0xffff;
@@ -47,8 +48,8 @@ export class Gaddag {
     const { wordBytes, wordOffsets } = encodeWords(words, scan);
     const items = generateItems(wordOffsets);
     sortItems(items, wordBytes, wordOffsets);
-    const { arcLabels, arcTargets, rootRef } = insertItems(items, wordBytes, wordOffsets);
-    return new Gaddag(arcLabels, arcTargets, rootRef, scan.charCodes);
+    const arcs = insertItems(items, wordBytes, wordOffsets);
+    return new Gaddag(arcs, scan.charCodes);
   }
 
   /**
@@ -57,8 +58,8 @@ export class Gaddag {
    * Zero-copy: when `bytes` is 4-byte aligned, the returned Gaddag reads from the
    * given buffer directly — do not mutate it afterwards.
    *
-   * Throws when the data was not written by a compatible version or is not
-   * exactly the serialized length. The arcs themselves are trusted — garbage in,
+   * Throws when the magic number, byte length, alphabet, root ref, or final
+   * arc is malformed. The arcs themselves are trusted — garbage in,
    * garbage out: on bytes not produced by {@link Gaddag.serialize}, this class's
    * lookups terminate but may answer incorrectly, and a traversal you write on
    * top can loop forever on a cycle or overflow the stack on a deep chain.
@@ -132,16 +133,17 @@ export class Gaddag {
       throw new Error('Invalid Gaddag data');
     }
 
-    return new Gaddag(arcLabels, arcTargets, rootRef, charCodes);
+    return new Gaddag({ arcLabels, arcTargets, rootRef }, charCodes);
   }
 
   /**
-   * Wraps pre-built arrays without any validation — prefer {@link Gaddag.fromArray}
-   * and {@link Gaddag.deserialize}. Lookups on invalid arrays terminate but
+   * Wraps pre-built arcs without any validation — prefer {@link Gaddag.fromArray}
+   * and {@link Gaddag.deserialize}. Lookups on invalid arcs terminate but
    * return incorrect results. The code-unit → letter table is derived from
    * `charCodes`, so an `Alphabet`'s `letterByCharCode` is not needed here.
    */
-  constructor(arcLabels: Uint8Array, arcTargets: Int32Array, rootRef: number, charCodes: Int32Array) {
+  constructor(arcs: GaddagArcs, charCodes: Int32Array) {
+    const { arcLabels, arcTargets, rootRef } = arcs;
     this.arcLabels = arcLabels;
     this.arcTargets = arcTargets;
     this.rootRef = rootRef;

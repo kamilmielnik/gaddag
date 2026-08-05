@@ -351,7 +351,7 @@ describe('build pipeline', () => {
     const items = generateItems(wordOffsets);
     sortItems(items, wordBytes, wordOffsets);
     const arcs = insertItems(items, wordBytes, wordOffsets);
-    const gaddag = new Gaddag(arcs.arcLabels, arcs.arcTargets, arcs.rootRef, scan.charCodes);
+    const gaddag = new Gaddag(arcs, scan.charCodes);
 
     expect(gaddag.has('scrabble')).toBe(true);
     expect(gaddag.has('solver')).toBe(true);

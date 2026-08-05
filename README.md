@@ -63,7 +63,7 @@ See full [API Docs](https://github.com/kamilmielnik/gaddag/blob/master/docs/READ
 Good to know:
 
 - a [`Gaddag`](https://github.com/kamilmielnik/gaddag/blob/master/docs/classes/Gaddag.md) is immutable — to change the dictionary, build a new one with [`Gaddag.fromArray`](https://github.com/kamilmielnik/gaddag/blob/master/docs/classes/Gaddag.md#fromarray)
-- [`Gaddag.deserialize`](https://github.com/kamilmielnik/gaddag/blob/master/docs/classes/Gaddag.md#deserialize) checks only the header and the alphabet, trusting the arcs — see [Garbage in, garbage out](#garbage-in-garbage-out)
+- [`Gaddag.deserialize`](https://github.com/kamilmielnik/gaddag/blob/master/docs/classes/Gaddag.md#deserialize) checks the header, the alphabet, and two arc labels (the root's state boundary and the final arc's terminator), trusting the arcs otherwise — see [Garbage in, garbage out](#garbage-in-garbage-out)
 - immutability is not enforced: the backing typed arrays are exposed directly (and shared with the input of [`Gaddag.deserialize`](https://github.com/kamilmielnik/gaddag/blob/master/docs/classes/Gaddag.md#deserialize) when it is 4-byte aligned) — treat them as read-only, writing to them corrupts the automaton
 - all exports are named (there is no default export)
 - `MAX_LETTERS`, `MAX_WORD_LENGTH`, and `MAX_WORDS` are described in [Limits](#limits)
@@ -133,7 +133,7 @@ Empty words are skipped; a non-string entry throws a `TypeError`. Duplicated wor
 
 # Garbage in, garbage out
 
-`Gaddag.deserialize` rejects a wrong magic number, a wrong byte length, and a malformed alphabet — cheap header checks. It does not walk the arcs, so nothing verifies that the bytes describe a well-formed automaton. On bytes that did not come from `Gaddag.serialize`:
+`Gaddag.deserialize` rejects a wrong magic number, a wrong byte length, a malformed alphabet, a root ref outside the arcs or pointing mid-state, and an unterminated final arc — cheap checks that read at most two arc labels. It does not walk the arcs, so nothing verifies that the bytes describe a well-formed automaton. On bytes that did not come from `Gaddag.serialize`:
 
 - `has`, `hasPrefix`, and `getArc` terminate, but may answer incorrectly
 - a traversal you write on top — like [Find all words with a given prefix](#find-all-words-with-a-given-prefix) — can loop forever on a cycle, or overflow the stack on a chain of states deeper than any real word
@@ -182,7 +182,7 @@ const buffer = await readFile('dictionary.gaddag');
 const gaddag = Gaddag.deserialize(buffer);
 ```
 
-`Gaddag.deserialize` trusts the file's content beyond cheap header checks — see [Garbage in, garbage out](#garbage-in-garbage-out).
+`Gaddag.deserialize` trusts the file's content beyond cheap format checks — see [Garbage in, garbage out](#garbage-in-garbage-out).
 
 ## Find all words with a given prefix
 

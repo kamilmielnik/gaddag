@@ -84,7 +84,7 @@ const main = async (): Promise<void> => {
   await writeFile(new URL('serialize.svg', CHARTS_DIR), renderChart(SERIALIZE_OPERATIONS, dictionaries, slowResults));
 
   console.log('Updating README.md...');
-  const original = await readFile(README_PATH, 'utf8');
+  const original = await readFile(README_PATH, 'utf-8');
   let updated = replaceBetween(original, DICTIONARIES_MARKER, formatDictionaryTable(dictionaries));
   updated = replaceBetween(updated, FAST_MARKER, `![Fast operations chart](${CHARTS_URL_BASE}/fast.svg)`);
   updated = replaceBetween(updated, BUILD_MARKER, `![Gaddag.fromArray chart](${CHARTS_URL_BASE}/fromArray.svg)`);
@@ -138,7 +138,7 @@ const downloadTo = async (url: string, destinationPath: string): Promise<void> =
 };
 
 const readWords = async (path: string): Promise<string[]> => {
-  const raw = await readFile(path, 'utf8');
+  const raw = await readFile(path, 'utf-8');
   const lines = raw.split(/\r?\n/);
   return lines.map((line) => line.trim()).filter((line) => /^\p{L}+$/u.test(line));
 };

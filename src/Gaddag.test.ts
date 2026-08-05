@@ -413,7 +413,10 @@ describe('Gaddag', () => {
     it('terminates on corrupted arcs instead of scanning forever', () => {
       const gaddag = Gaddag.fromArray(WORDS);
       const labels = Uint8Array.from(gaddag.arcLabels, (label) => label & LETTER_MASK);
-      const corrupted = new Gaddag(labels, gaddag.arcTargets, gaddag.rootRef, gaddag.charCodes);
+      const corrupted = new Gaddag(
+        { arcLabels: labels, arcTargets: gaddag.arcTargets, rootRef: gaddag.rootRef },
+        gaddag.charCodes,
+      );
 
       for (const word of [...WORDS, 'zzz', 'b']) {
         expect(typeof corrupted.has(word)).toBe('boolean');
@@ -424,7 +427,10 @@ describe('Gaddag', () => {
     it('terminates when a target ref points past the arcs', () => {
       const gaddag = Gaddag.fromArray(WORDS);
       const targets = Int32Array.from(gaddag.arcTargets, () => gaddag.arcLabels.length * 2);
-      const corrupted = new Gaddag(gaddag.arcLabels, targets, gaddag.rootRef, gaddag.charCodes);
+      const corrupted = new Gaddag(
+        { arcLabels: gaddag.arcLabels, arcTargets: targets, rootRef: gaddag.rootRef },
+        gaddag.charCodes,
+      );
 
       expect(typeof corrupted.has('able')).toBe('boolean');
       expect(typeof corrupted.hasPrefix('ab')).toBe('boolean');
