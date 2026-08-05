@@ -379,7 +379,9 @@ class Builder {
   private arcTop: number;
 
   // Open-addressing registry of frozen states, storing first-arc indices (0 = empty slot).
+  // Each entry's hash is kept alongside, so growing rehashes without re-reading arcs.
   private table: Int32Array;
+  private tableHashes: Int32Array;
   private tableCount: number;
 
   // Temporary (not yet minimized) states along the current insertion path.
@@ -397,6 +399,7 @@ class Builder {
     this.targets = new Int32Array(INITIAL_CAPACITY);
     this.arcTop = 1;
     this.table = new Int32Array(INITIAL_CAPACITY);
+    this.tableHashes = new Int32Array(INITIAL_CAPACITY);
     this.tableCount = 0;
     this.pathLetters = new Uint8Array(PATH_DEPTH_COUNT * MAX_ARCS_PER_STATE);
     this.pathTargets = new Int32Array(PATH_DEPTH_COUNT * MAX_ARCS_PER_STATE);
@@ -493,6 +496,7 @@ class Builder {
 
     const firstArc = this.appendArcs(base, count);
     this.table[slot] = firstArc;
+    this.tableHashes[slot] = hash;
     ++this.tableCount;
 
     if (this.tableCount * 10 > this.table.length * 7) {
@@ -563,42 +567,27 @@ class Builder {
 
   private growTable(): void {
     const previousTable = this.table;
+    const previousHashes = this.tableHashes;
     this.table = new Int32Array(previousTable.length * 2);
+    this.tableHashes = new Int32Array(previousTable.length * 2);
     const mask = this.table.length - 1;
 
-    for (const firstArc of previousTable) {
+    for (let index = 0; index < previousTable.length; ++index) {
+      const firstArc = previousTable[index];
+
       if (firstArc === 0) {
         continue;
       }
 
-      let slot = this.hashFrozen(firstArc) & mask;
+      const hash = previousHashes[index];
+      let slot = hash & mask;
 
       while (this.table[slot] !== 0) {
         slot = (slot + 1) & mask;
       }
 
       this.table[slot] = firstArc;
+      this.tableHashes[slot] = hash;
     }
-  }
-
-  private hashFrozen(firstArc: number): number {
-    let count = 0;
-
-    for (let index = firstArc; ; ++index) {
-      ++count;
-
-      if (this.labels[index] >= LAST_ARC_FLAG) {
-        break;
-      }
-    }
-
-    let hash = FNV_OFFSET_BASIS ^ count;
-
-    for (let index = 0; index < count; ++index) {
-      hash = Math.imul(hash ^ (this.labels[firstArc + index] & LETTER_MASK), FNV_PRIME);
-      hash = Math.imul(hash ^ this.targets[firstArc + index], FNV_PRIME);
-    }
-
-    return hash >>> 0;
   }
 }
