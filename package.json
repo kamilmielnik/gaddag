@@ -51,7 +51,8 @@
   },
   "homepage": "https://github.com/kamilmielnik/gaddag#readme",
   "files": [
-    "build/**"
+    "build/**",
+    "CHANGELOG.md"
   ],
   "np": {
     "packageManager": "bun"
