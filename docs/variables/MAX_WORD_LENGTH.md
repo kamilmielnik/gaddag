@@ -8,6 +8,4 @@
 
 > `const` **MAX\_WORD\_LENGTH**: `63` = `63`
 
-Defined in: [constants.ts:8](https://github.com/kamilmielnik/gaddag/blob/master/src/constants.ts#L8)
-
 A split position is stored on 6 bits (1..63); longer words are skipped — no board fits them anyway.

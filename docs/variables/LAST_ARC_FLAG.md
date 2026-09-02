@@ -8,6 +8,4 @@
 
 > `const` **LAST\_ARC\_FLAG**: `128` = `128`
 
-Defined in: [constants.ts:18](https://github.com/kamilmielnik/gaddag/blob/master/src/constants.ts#L18)
-
 Arc label bit marking the last arc of a state.

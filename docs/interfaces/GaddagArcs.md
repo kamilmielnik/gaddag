@@ -6,8 +6,6 @@
 
 # Interface: GaddagArcs
 
-Defined in: [types.ts:29](https://github.com/kamilmielnik/gaddag/blob/master/src/types.ts#L29)
-
 Arcs of a built automaton, as consumed by the `Gaddag` constructor.
 
 ## Properties
@@ -16,20 +14,14 @@ Arcs of a built automaton, as consumed by the `Gaddag` constructor.
 
 > **arcLabels**: `Uint8Array`
 
-Defined in: [types.ts:30](https://github.com/kamilmielnik/gaddag/blob/master/src/types.ts#L30)
-
 ***
 
 ### arcTargets
 
 > **arcTargets**: `Int32Array`
 
-Defined in: [types.ts:31](https://github.com/kamilmielnik/gaddag/blob/master/src/types.ts#L31)
-
 ***
 
 ### rootRef
 
 > **rootRef**: `number`
-
-Defined in: [types.ts:32](https://github.com/kamilmielnik/gaddag/blob/master/src/types.ts#L32)

@@ -8,8 +8,6 @@
 
 > **sortItems**(`items`, `wordBytes`, `wordOffsets`): `void`
 
-Defined in: [buildGaddag.ts:162](https://github.com/kamilmielnik/gaddag/blob/master/src/buildGaddag.ts#L162)
-
 Orders the sequences with an in-place MSD radix sort.
 
 ## Parameters
