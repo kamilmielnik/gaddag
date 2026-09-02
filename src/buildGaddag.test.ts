@@ -255,6 +255,16 @@ describe('encodeWords', () => {
     expect([...wordOffsets]).toEqual([0, 2, 3]);
     expect([...wordBytes]).toEqual([2, 1, 3]);
   });
+
+  it('rejects words that differ from the scanned list instead of encoding garbage', () => {
+    const scan = scanWords(['ab', 'd']);
+
+    expect(() => encodeWords(['ab', 'd', 'a'], scan)).toThrow('differ in size');
+    expect(() => encodeWords(['ab'], scan)).toThrow('differ in size');
+    // 'c' sits inside the letter table's range, 'z' beyond it.
+    expect(() => encodeWords(['ac', 'd'], scan)).toThrow('outside the scanned alphabet');
+    expect(() => encodeWords(['ab', 'z'], scan)).toThrow('outside the scanned alphabet');
+  });
 });
 
 describe('generateItems', () => {

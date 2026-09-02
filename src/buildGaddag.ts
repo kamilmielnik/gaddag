@@ -87,7 +87,8 @@ export function mapCharCodesToLetters(charCodes: Int32Array): Uint8Array {
 
 /**
  * Flattens a word list into letter indices. Expects the same `words` the scan
- * came from — {@link scanWords} is what validates the entries.
+ * came from — {@link scanWords} is what validates the entries — and throws when
+ * they differ in letters or in size.
  */
 export function encodeWords(words: string[], scan: WordListScan): EncodedWords {
   const { itemsCount, letterByCharCode, wordsCount } = scan;
@@ -104,11 +105,22 @@ export function encodeWords(words: string[], scan: WordListScan): EncodedWords {
     wordOffsets[wordIndex] = offset;
 
     for (let index = 0; index < word.length; ++index) {
-      wordBytes[offset] = letterByCharCode[word.charCodeAt(index)];
+      const charCode = word.charCodeAt(index);
+      const letter = charCode < letterByCharCode.length ? letterByCharCode[charCode] : 0;
+
+      if (letter === 0) {
+        throw new Error('encodeWords received a word with a letter outside the scanned alphabet');
+      }
+
+      wordBytes[offset] = letter;
       ++offset;
     }
 
     ++wordIndex;
+  }
+
+  if (offset !== itemsCount || wordIndex !== wordsCount) {
+    throw new Error('encodeWords received words that differ in size from the scanned word list');
   }
 
   wordOffsets[wordsCount] = offset;
