@@ -364,11 +364,13 @@ function renderChart(
     return PADDING.top + plotHeight - (value / axisMax) * plotHeight;
   }
 
+  // One id per chart, so inlining several charts into one document keeps every label unique.
+  const titleId = `chart-title-${slugify(title)}`;
   const parts: string[] = [];
   parts.push(
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${WIDTH} ${HEIGHT}" role="img" aria-labelledby="chart-title" font-family="-apple-system, Segoe UI, Roboto, sans-serif" font-size="13">`,
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${WIDTH} ${HEIGHT}" role="img" aria-labelledby="${titleId}" font-family="-apple-system, Segoe UI, Roboto, sans-serif" font-size="13">`,
   );
-  parts.push(`<title id="chart-title">${escapeXml(title)} — operations per second by dictionary</title>`);
+  parts.push(`<title id="${titleId}">${escapeXml(title)} — operations per second by dictionary</title>`);
   parts.push(`<rect width="${WIDTH}" height="${HEIGHT}" fill="white"/>`);
 
   for (let gridline = 0; gridline <= GRIDLINE_COUNT; ++gridline) {
@@ -490,6 +492,13 @@ function formatHertzAxis(hertz: number): string {
 
 function formatAxisValue(value: number): string {
   return Number.isInteger(value) ? `${value}` : value.toFixed(1);
+}
+
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
 }
 
 const XML_ESCAPES: Record<string, string> = { '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' };
