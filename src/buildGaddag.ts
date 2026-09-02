@@ -47,7 +47,7 @@ export function scanWords(words: string[]): WordListScan {
   }
 
   if (lettersCount > MAX_LETTERS) {
-    throw new RangeError(`Gaddag supports up to ${MAX_LETTERS} distinct characters, got ${lettersCount}`);
+    throw new RangeError(`Gaddag supports up to ${MAX_LETTERS} distinct UTF-16 code units, got ${lettersCount}`);
   }
 
   if (wordsCount > MAX_WORDS) {

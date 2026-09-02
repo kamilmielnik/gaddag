@@ -85,7 +85,7 @@ describe('Gaddag.fromArray', () => {
     const words = Array.from({ length: 64 }, (_, index) => String.fromCharCode(97 + index));
 
     expect(() => Gaddag.fromArray(words)).toThrow(RangeError);
-    expect(() => Gaddag.fromArray(words)).toThrow('Gaddag supports up to 63 distinct characters, got 64');
+    expect(() => Gaddag.fromArray(words)).toThrow('Gaddag supports up to 63 distinct UTF-16 code units, got 64');
   });
 
   it('supports an alphabet of exactly 63 distinct characters', () => {
