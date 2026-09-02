@@ -18,13 +18,13 @@ const DICT_REPO_BASE = 'https://raw.githubusercontent.com/kamilmielnik/scrabble-
 
 const FAST_MARKER = 'BENCH:fast';
 const BUILD_MARKER = 'BENCH:fromArray';
-const SERIALIZE_MARKER = 'BENCH:serialize';
+const PASSES_MARKER = 'BENCH:passes';
 const DICTIONARIES_MARKER = 'DICTIONARIES';
 const CONTEXT_MARKER = 'BENCH:context';
 
 const FAST_TITLE = 'Fast operations';
 const BUILD_TITLE = 'Gaddag.fromArray';
-const SERIALIZE_TITLE = 'Serialize';
+const PASSES_TITLE = 'Whole-automaton passes';
 
 const FAST_OPERATIONS = [
   'has (hit)',
@@ -32,10 +32,10 @@ const FAST_OPERATIONS = [
   'hasPrefix (hit)',
   'hasPrefix (miss)',
   'getArc',
-  'Gaddag.deserialize',
+  'Gaddag.deserialize (aligned)',
 ];
 const BUILD_OPERATIONS = ['Gaddag.fromArray'];
-const SERIALIZE_OPERATIONS = ['serialize'];
+const PASSES_OPERATIONS = ['serialize', 'Gaddag.deserialize (unaligned)', 'validate'];
 
 const SOURCES: DictionarySource[] = [
   {
@@ -91,8 +91,8 @@ async function main(): Promise<void> {
     renderChart(BUILD_TITLE, BUILD_OPERATIONS, dictionaries, slowResults),
   );
   await writeFile(
-    new URL('serialize.svg', CHARTS_DIR),
-    renderChart(SERIALIZE_TITLE, SERIALIZE_OPERATIONS, dictionaries, slowResults),
+    new URL('passes.svg', CHARTS_DIR),
+    renderChart(PASSES_TITLE, PASSES_OPERATIONS, dictionaries, slowResults),
   );
 
   console.log('Updating README.md...');
@@ -111,8 +111,8 @@ async function main(): Promise<void> {
   );
   updated = replaceBetween(
     updated,
-    SERIALIZE_MARKER,
-    formatChartSection(SERIALIZE_TITLE, 'serialize.svg', SERIALIZE_OPERATIONS, dictionaries, slowResults),
+    PASSES_MARKER,
+    formatChartSection(PASSES_TITLE, 'passes.svg', PASSES_OPERATIONS, dictionaries, slowResults),
   );
 
   if (updated !== original) {
@@ -224,7 +224,7 @@ async function runFast(dictionary: Dictionary): Promise<Map<string, number>> {
       gaddag.getArc(arcRefs[arcIndex], arcLetters[arcIndex]);
       arcIndex = (arcIndex + 1) & arcMask;
     })
-    .add('Gaddag.deserialize', () => {
+    .add('Gaddag.deserialize (aligned)', () => {
       Gaddag.deserialize(dictionary.serialized);
     });
 
@@ -295,13 +295,28 @@ async function runSlow(dictionary: Dictionary): Promise<Map<string, number>> {
   });
   await buildBench.run();
 
-  const serializeBench = new Bench({ time: BENCH_TIME });
-  serializeBench.add('serialize', () => {
-    dictionary.gaddag.serialize();
-  });
-  await serializeBench.run();
+  const unaligned = shiftByOneByte(dictionary.serialized);
+  const passesBench = new Bench({ time: BENCH_TIME });
+  passesBench
+    .add('serialize', () => {
+      dictionary.gaddag.serialize();
+    })
+    .add('Gaddag.deserialize (unaligned)', () => {
+      Gaddag.deserialize(unaligned);
+    })
+    .add('validate', () => {
+      dictionary.gaddag.validate();
+    });
+  await passesBench.run();
 
-  return new Map([...collectResults(buildBench), ...collectResults(serializeBench)]);
+  return new Map([...collectResults(buildBench), ...collectResults(passesBench)]);
+}
+
+/** A view of the same bytes at byte offset 1, which forces `Gaddag.deserialize` to copy them. */
+function shiftByOneByte(bytes: Uint8Array): Uint8Array {
+  const shifted = new Uint8Array(bytes.length + 1);
+  shifted.set(bytes, 1);
+  return new Uint8Array(shifted.buffer, 1, bytes.length);
 }
 
 function collectResults(bench: Bench): Map<string, number> {

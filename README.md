@@ -137,7 +137,7 @@ Empty words are skipped; a non-string entry throws a `TypeError`. Duplicated wor
 - `has`, `hasPrefix`, and `getArc` terminate, but may answer incorrectly
 - a traversal you write on top — like [Find all words with a given prefix](#find-all-words-with-a-given-prefix) — can loop forever on a cycle, or overflow the stack on a chain of states deeper than any real word
 
-[`validate`](https://github.com/kamilmielnik/gaddag/blob/master/docs/classes/Gaddag.md#validate) closes that gap in one pass over the arcs — a few milliseconds per million arcs: it proves that every letter is in the alphabet, that the arcs of each state ascend by letter, that every arc leads somewhere, that the root has no separator arc, and that every target points at the start of a state which lies before the state owning the arc, which rules out cycles and bounds the depth. It does not prove that a path crosses the separator at most once — that is a property of the word list, not of the automaton — so a traversal of foreign bytes should skip a separator arc it meets after the separator, as the example below does. A validated automaton answers consistently and every traversal of it terminates; whether it holds the words you expect is still up to whoever wrote the bytes. Call it once on data you did not serialize yourself, or build from text with `Gaddag.fromArray` instead.
+[`validate`](https://github.com/kamilmielnik/gaddag/blob/master/docs/classes/Gaddag.md#validate) closes that gap in one pass over the arcs — see [Performance](#performance) for how long it takes: it proves that every letter is in the alphabet, that the arcs of each state ascend by letter, that every arc leads somewhere, that the root has no separator arc, and that every target points at the start of a state which lies before the state owning the arc, which rules out cycles and bounds the depth. It does not prove that a path crosses the separator at most once — that is a property of the word list, not of the automaton — so a traversal of foreign bytes should skip a separator arc it meets after the separator, as the example below does. A validated automaton answers consistently and every traversal of it terminates; whether it holds the words you expect is still up to whoever wrote the bytes. Call it once on data you did not serialize yourself, or build from text with `Gaddag.fromArray` instead.
 
 ## Examples
 
@@ -271,12 +271,12 @@ Measured on 2026-09-03 with Bun 1.4.0 on 13th Gen Intel(R) Core(TM) i9-13900K (l
 
 | ops / sec | 🇺🇸 en-US | 🇬🇧 en-GB | 🇵🇱 pl-PL |
 | --- | ---: | ---: | ---: |
-| `has (hit)` | 8.50M | 7.47M | 4.38M |
-| `has (miss)` | 8.59M | 7.99M | 5.33M |
-| `hasPrefix (hit)` | 20.23M | 17.54M | 18.15M |
-| `hasPrefix (miss)` | 22.28M | 18.38M | 19.68M |
-| `getArc` | 31.67M | 26.04M | 25.25M |
-| `Gaddag.deserialize` | 5.70M | 5.21M | 4.74M |
+| `has (hit)` | 7.70M | 6.98M | 4.50M |
+| `has (miss)` | 8.76M | 7.93M | 5.41M |
+| `hasPrefix (hit)` | 19.13M | 17.81M | 16.93M |
+| `hasPrefix (miss)` | 21.89M | 18.94M | 19.02M |
+| `getArc` | 32.11M | 27.46M | 24.15M |
+| `Gaddag.deserialize (aligned)` | 5.45M | 5.52M | 4.74M |
 <!-- BENCH:fast:end -->
 
 <!-- BENCH:fromArray:start -->
@@ -284,13 +284,15 @@ Measured on 2026-09-03 with Bun 1.4.0 on 13th Gen Intel(R) Core(TM) i9-13900K (l
 
 | ops / sec | 🇺🇸 en-US | 🇬🇧 en-GB | 🇵🇱 pl-PL |
 | --- | ---: | ---: | ---: |
-| `Gaddag.fromArray` | 3.76 | 2.40 | 0.16 |
+| `Gaddag.fromArray` | 3.69 | 2.39 | 0.17 |
 <!-- BENCH:fromArray:end -->
 
-<!-- BENCH:serialize:start -->
-![Serialize chart](https://raw.githubusercontent.com/kamilmielnik/gaddag/master/bench/charts/serialize.svg)
+<!-- BENCH:passes:start -->
+![Whole-automaton passes chart](https://raw.githubusercontent.com/kamilmielnik/gaddag/master/bench/charts/passes.svg)
 
 | ops / sec | 🇺🇸 en-US | 🇬🇧 en-GB | 🇵🇱 pl-PL |
 | --- | ---: | ---: | ---: |
-| `serialize` | 2.48k | 1.81k | 440.15 |
-<!-- BENCH:serialize:end -->
+| `serialize` | 2.25k | 1.64k | 446.15 |
+| `Gaddag.deserialize (unaligned)` | 9.10k | 6.27k | 1.41k |
+| `validate` | 350.82 | 250.43 | 66.39 |
+<!-- BENCH:passes:end -->
