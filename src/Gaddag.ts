@@ -90,21 +90,18 @@ export class Gaddag {
       throw invalidData(`arc count ${arcCount} below 1`);
     }
 
-    const expectedByteLength = HEADER_BYTES + 4 * (letterCount + arcCount) + arcCount;
+    const layout = layoutOf(letterCount, arcCount);
 
-    if (aligned.byteLength !== expectedByteLength) {
-      throw invalidData(`expected ${expectedByteLength} bytes, got ${aligned.byteLength}`);
+    if (aligned.byteLength !== layout.byteLength) {
+      throw invalidData(`expected ${layout.byteLength} bytes, got ${aligned.byteLength}`);
     }
 
     assertRootRef(rootRef, arcCount);
-    const charCodes = new Int32Array(aligned.buffer, aligned.byteOffset + HEADER_BYTES, letterCount);
+    const { buffer, byteOffset } = aligned;
+    const charCodes = new Int32Array(buffer, byteOffset + layout.charCodesOffset, letterCount);
     assertAlphabet(charCodes);
-    const arcTargets = new Int32Array(aligned.buffer, aligned.byteOffset + HEADER_BYTES + 4 * letterCount, arcCount);
-    const arcLabels = new Uint8Array(
-      aligned.buffer,
-      aligned.byteOffset + HEADER_BYTES + 4 * (letterCount + arcCount),
-      arcCount,
-    );
+    const arcTargets = new Int32Array(buffer, byteOffset + layout.arcTargetsOffset, arcCount);
+    const arcLabels = new Uint8Array(buffer, byteOffset + layout.arcLabelsOffset, arcCount);
     assertStateBoundaries(arcLabels, rootRef);
     return new Gaddag({ arcLabels, arcTargets, rootRef }, charCodes);
   }
@@ -148,15 +145,16 @@ export class Gaddag {
   public serialize(): Uint8Array {
     const letterCount = this.charCodes.length;
     const arcCount = this.arcTargets.length;
-    const bytes = new Uint8Array(HEADER_BYTES + 4 * (letterCount + arcCount) + arcCount);
+    const layout = layoutOf(letterCount, arcCount);
+    const bytes = new Uint8Array(layout.byteLength);
     const header = new Int32Array(bytes.buffer, 0, 4);
     header[0] = MAGIC;
     header[1] = letterCount;
     header[2] = arcCount;
     header[3] = this.rootRef;
-    new Int32Array(bytes.buffer, HEADER_BYTES, letterCount).set(this.charCodes);
-    new Int32Array(bytes.buffer, HEADER_BYTES + 4 * letterCount, arcCount).set(this.arcTargets);
-    bytes.set(this.arcLabels, HEADER_BYTES + 4 * (letterCount + arcCount));
+    new Int32Array(bytes.buffer, layout.charCodesOffset, letterCount).set(this.charCodes);
+    new Int32Array(bytes.buffer, layout.arcTargetsOffset, arcCount).set(this.arcTargets);
+    bytes.set(this.arcLabels, layout.arcLabelsOffset);
     return bytes;
   }
 
@@ -300,6 +298,15 @@ function invalidData(reason: string): Error {
 /** Int32Array views need a 4-byte aligned offset; a view that lacks one is copied into a fresh buffer. */
 function alignTo4Bytes(bytes: Uint8Array): Uint8Array {
   return bytes.byteOffset % 4 === 0 ? bytes : Uint8Array.from(bytes);
+}
+
+/** Byte offsets of the serialized sections — the layout documented on {@link MAGIC}. */
+function layoutOf(letterCount: number, arcCount: number) {
+  const charCodesOffset = HEADER_BYTES;
+  const arcTargetsOffset = charCodesOffset + 4 * letterCount;
+  const arcLabelsOffset = arcTargetsOffset + 4 * arcCount;
+  const byteLength = arcLabelsOffset + arcCount;
+  return { charCodesOffset, arcTargetsOffset, arcLabelsOffset, byteLength };
 }
 
 /** The root is never a word end — empty words are skipped — so a set word-end bit on the root ref means corruption. */
