@@ -1,14 +1,14 @@
 <div align="center">
 <h1>@kamilmielnik/gaddag</h1>
 
-<img src="https://img.shields.io/github/package-json/v/kamilmielnik/gaddag" alt="Version" />
-<img src="https://img.shields.io/npm/l/@kamilmielnik/gaddag" alt="License" />
-<img src="https://img.shields.io/badge/bun-%3E=1.4-brightgreen.svg" alt="Bun" />
-<img src="https://img.shields.io/node/v/@kamilmielnik/gaddag" alt="Node version" />
+<a href="https://www.npmjs.com/package/@kamilmielnik/gaddag"><img src="https://img.shields.io/github/package-json/v/kamilmielnik/gaddag" alt="Version" /></a>
+<a href="https://github.com/kamilmielnik/gaddag/blob/master/LICENSE"><img src="https://img.shields.io/npm/l/@kamilmielnik/gaddag" alt="License" /></a>
+<a href="https://bun.sh/"><img src="https://img.shields.io/badge/bun-%3E=1.4-brightgreen.svg" alt="Bun" /></a>
+<a href="https://nodejs.org/"><img src="https://img.shields.io/node/v/@kamilmielnik/gaddag" alt="Node version" /></a>
 
-<img src="https://github.com/kamilmielnik/gaddag/actions/workflows/test.yml/badge.svg" alt="Test" />
-<img src="https://img.shields.io/badge/coverage-100%25-brightgreen.svg" alt="Coverage" />
-<img src="https://github.com/kamilmielnik/gaddag/actions/workflows/oxfmt.yml/badge.svg" alt="Format" />
+<a href="https://github.com/kamilmielnik/gaddag/actions/workflows/test.yml"><img src="https://github.com/kamilmielnik/gaddag/actions/workflows/test.yml/badge.svg" alt="Test" /></a>
+<a href="https://github.com/kamilmielnik/gaddag/blob/master/bunfig.toml"><img src="https://img.shields.io/badge/coverage-100%25-brightgreen.svg" alt="Coverage" /></a>
+<a href="https://github.com/kamilmielnik/gaddag/actions/workflows/oxfmt.yml"><img src="https://github.com/kamilmielnik/gaddag/actions/workflows/oxfmt.yml/badge.svg" alt="Format" /></a>
 </div>
 
 ----
