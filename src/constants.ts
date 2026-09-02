@@ -4,7 +4,7 @@ export const SEPARATOR = 0;
 /** Letters are stored on 6 bits (1..63); 0 is the separator. */
 export const MAX_LETTERS = 63;
 
-/** Words longer than this are skipped — they cannot fit on any board. */
+/** A split position is stored on 6 bits (1..63); longer words are skipped — no board fits them anyway. */
 export const MAX_WORD_LENGTH = 63;
 
 /**

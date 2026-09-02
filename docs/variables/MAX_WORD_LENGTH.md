@@ -10,4 +10,4 @@
 
 Defined in: [constants.ts:8](https://github.com/kamilmielnik/gaddag/blob/master/src/constants.ts#L8)
 
-Words longer than this are skipped — they cannot fit on any board.
+A split position is stored on 6 bits (1..63); longer words are skipped — no board fits them anyway.
