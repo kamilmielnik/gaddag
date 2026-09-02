@@ -63,7 +63,7 @@ See full [API Docs](https://github.com/kamilmielnik/gaddag/blob/master/docs/READ
 Good to know:
 
 - a [`Gaddag`](https://github.com/kamilmielnik/gaddag/blob/master/docs/classes/Gaddag.md) is immutable — to change the dictionary, build a new one with [`Gaddag.fromArray`](https://github.com/kamilmielnik/gaddag/blob/master/docs/classes/Gaddag.md#fromarray)
-- [`Gaddag.deserialize`](https://github.com/kamilmielnik/gaddag/blob/master/docs/classes/Gaddag.md#deserialize) checks the header, the alphabet, and two arc labels (the root's state boundary and the final arc's terminator), trusting the arcs otherwise — see [Garbage in, garbage out](#garbage-in-garbage-out)
+- [`Gaddag.deserialize`](https://github.com/kamilmielnik/gaddag/blob/master/docs/classes/Gaddag.md#deserialize) checks the header, the alphabet, and two arc labels (the root's state boundary and the final arc's terminator), trusting the arcs otherwise — [`validate`](https://github.com/kamilmielnik/gaddag/blob/master/docs/classes/Gaddag.md#validate) proves the rest in one pass, see [Garbage in, garbage out](#garbage-in-garbage-out)
 - immutability is not enforced: the backing typed arrays are exposed directly (and shared with the input of [`Gaddag.deserialize`](https://github.com/kamilmielnik/gaddag/blob/master/docs/classes/Gaddag.md#deserialize) when it is 4-byte aligned) — treat them as read-only, writing to them corrupts the automaton
 - all exports are named (there is no default export)
 - `MAX_LETTERS`, `MAX_WORD_LENGTH`, and `MAX_WORDS` are described in [Limits](#limits)
@@ -138,7 +138,7 @@ Empty words are skipped; a non-string entry throws a `TypeError`. Duplicated wor
 - `has`, `hasPrefix`, and `getArc` terminate, but may answer incorrectly
 - a traversal you write on top — like [Find all words with a given prefix](#find-all-words-with-a-given-prefix) — can loop forever on a cycle, or overflow the stack on a chain of states deeper than any real word
 
-Only deserialize data you serialized yourself. To load a word list from a source you do not control, build from text with `Gaddag.fromArray` instead.
+[`validate`](https://github.com/kamilmielnik/gaddag/blob/master/docs/classes/Gaddag.md#validate) closes that gap in one pass over the arcs — a few milliseconds per million arcs: it proves that every letter is in the alphabet, that the arcs of each state ascend by letter, and that every target points at the start of a state which lies before the state owning the arc, which rules out cycles and bounds the depth. A validated automaton answers consistently and every traversal of it terminates; whether it holds the words you expect is still up to whoever wrote the bytes. Call it once on data you did not serialize yourself, or build from text with `Gaddag.fromArray` instead.
 
 # Examples
 
@@ -180,15 +180,16 @@ import { Gaddag } from '@kamilmielnik/gaddag';
 
 const buffer = await readFile('dictionary.gaddag');
 const gaddag = Gaddag.deserialize(buffer);
+gaddag.validate(); // throws unless the arcs form a well-formed automaton
 ```
 
-`Gaddag.deserialize` trusts the file's content beyond cheap format checks — see [Garbage in, garbage out](#garbage-in-garbage-out).
+`Gaddag.deserialize` trusts the file's content beyond cheap format checks; `validate` proves the rest — see [Garbage in, garbage out](#garbage-in-garbage-out).
 
 ## Find all words with a given prefix
 
 A GADDAG stores `reverse(prefix) + ◇ + suffix` paths, so all words starting with a prefix live behind a single separator arc: follow the reversed prefix, cross `◇`, and collect every suffix.
 
-`collectWords` below recurses as deep as the words are long — at most `MAX_WORD_LENGTH` + 1 frames for a dictionary built from a word list. Foreign bytes carry no such bound — see [Garbage in, garbage out](#garbage-in-garbage-out).
+`collectWords` below recurses as deep as the words are long — at most `MAX_WORD_LENGTH` + 1 frames for a dictionary built from a word list. Foreign bytes carry no such bound unless `validate` has accepted them — see [Garbage in, garbage out](#garbage-in-garbage-out).
 
 ```TypeScript
 import { Gaddag, LAST_ARC_FLAG, LETTER_MASK, SEPARATOR } from '@kamilmielnik/gaddag';

@@ -56,11 +56,12 @@ export class Gaddag {
    * given buffer directly — do not mutate it afterwards.
    *
    * Throws an `Error` naming the failed check when the magic number, byte
-   * length, alphabet, root ref, or final arc is malformed. The arcs themselves are trusted — garbage in,
-   * garbage out: on bytes not produced by {@link Gaddag.serialize}, this class's
-   * lookups terminate but may answer incorrectly, and a traversal you write on
-   * top can loop forever on a cycle or overflow the stack on a deep chain.
-   * Only deserialize data you serialized yourself.
+   * length, alphabet, root ref, or final arc is malformed. The arcs themselves
+   * are trusted — garbage in, garbage out: on bytes not produced by
+   * {@link Gaddag.serialize}, this class's lookups terminate but may answer
+   * incorrectly, and a traversal you write on top can loop forever on a cycle
+   * or overflow the stack on a deep chain. Call {@link Gaddag.validate} on data
+   * you did not serialize yourself.
    */
   public static deserialize(bytes: Uint8Array): Gaddag {
     /**
@@ -159,6 +160,33 @@ export class Gaddag {
     new Int32Array(bytes.buffer, HEADER_BYTES + 4 * letterCount, arcCount).set(this.arcTargets);
     bytes.set(this.arcLabels, HEADER_BYTES + 4 * (letterCount + arcCount));
     return bytes;
+  }
+
+  /**
+   * Proves in one pass over the arcs that they describe a well-formed automaton:
+   * every letter is in the alphabet, the arcs of each state ascend by letter,
+   * and every target points at the start of a state that lies before the state
+   * owning the arc. That last rule rules out cycles and bounds the depth, so
+   * every traversal terminates. The alphabet and the root ref are checked the
+   * way {@link Gaddag.deserialize} checks them. Throws an `Error` naming the
+   * first violation. Costs a few milliseconds per million arcs.
+   */
+  public validate(): void {
+    const { arcLabels, arcTargets, charCodes, rootRef } = this;
+    const arcCount = arcTargets.length;
+
+    if (arcLabels.length !== arcCount) {
+      throw invalidData(`${arcLabels.length} arc labels for ${arcCount} arc targets`);
+    }
+
+    if (arcCount < 1) {
+      throw invalidData(`arc count ${arcCount} below 1`);
+    }
+
+    assertRootRef(rootRef, arcCount);
+    assertAlphabet(charCodes);
+    assertStateBoundaries(arcLabels, rootRef);
+    assertArcs(arcLabels, arcTargets, charCodes.length);
   }
 
   /** Returns whether `word` is in the dictionary. The empty string never is. */
@@ -291,6 +319,10 @@ function assertRootRef(rootRef: number, arcCount: number): void {
  * would make the constructor allocate a code-unit table of that size.
  */
 function assertAlphabet(charCodes: Int32Array): void {
+  if (charCodes.length > MAX_LETTERS) {
+    throw invalidData(`letter count ${charCodes.length} outside 0..${MAX_LETTERS}`);
+  }
+
   let previousCharCode = -1;
 
   for (let index = 0; index < charCodes.length; ++index) {
@@ -323,5 +355,46 @@ function assertStateBoundaries(arcLabels: Uint8Array, rootRef: number): void {
 
   if (rootArcIndex > 1 && arcLabels[rootArcIndex - 1] < LAST_ARC_FLAG) {
     throw invalidData('root ref points into the middle of a state');
+  }
+}
+
+/**
+ * Letters must be in the alphabet and ascend within a state, or `getArc` scans
+ * stop at the wrong arc. Every target must point at the start of a state that
+ * precedes the state owning the arc — the order the builder appends states in —
+ * which rules out cycles and bounds the depth of any traversal.
+ */
+function assertArcs(arcLabels: Uint8Array, arcTargets: Int32Array, letterCount: number): void {
+  let stateStart = 1;
+  let previousLetter = -1;
+
+  for (let index = 1; index < arcLabels.length; ++index) {
+    const label = arcLabels[index];
+    const letter = label & LETTER_MASK;
+
+    if (letter > letterCount) {
+      throw invalidData(`arc ${index} has letter ${letter}, outside the ${letterCount}-letter alphabet`);
+    }
+
+    if (letter <= previousLetter) {
+      throw invalidData(`arc ${index} breaks the letter order of its state`);
+    }
+
+    const targetIndex = arcTargets[index] >>> 1;
+
+    if (targetIndex >= stateStart) {
+      throw invalidData(`arc ${index} targets ref ${arcTargets[index]}, which does not precede its own state`);
+    }
+
+    if (targetIndex > 1 && arcLabels[targetIndex - 1] < LAST_ARC_FLAG) {
+      throw invalidData(`arc ${index} targets the middle of a state`);
+    }
+
+    if (label >= LAST_ARC_FLAG) {
+      stateStart = index + 1;
+      previousLetter = -1;
+    } else {
+      previousLetter = letter;
+    }
   }
 }

@@ -256,6 +256,115 @@ describe('Gaddag', () => {
     });
   });
 
+  describe('validate', () => {
+    function corrupt(gaddag: Gaddag, mutate: (arcLabels: Uint8Array, arcTargets: Int32Array) => void): Gaddag {
+      const arcLabels = gaddag.arcLabels.slice();
+      const arcTargets = gaddag.arcTargets.slice();
+      mutate(arcLabels, arcTargets);
+      return new Gaddag({ arcLabels, arcTargets, rootRef: gaddag.rootRef }, gaddag.charCodes);
+    }
+
+    /** Index of an arc that is not the last of its state, so the next index lies mid-state. */
+    function nonLastArcIndex(gaddag: Gaddag): number {
+      const index = gaddag.arcLabels.findIndex((label, position) => position > 0 && label < LAST_ARC_FLAG);
+      expect(index).toBeGreaterThan(0);
+      return index;
+    }
+
+    it('accepts every dictionary it builds', () => {
+      for (const words of [WORDS, [], ['a'], ['💚a', '💙b'], ['a'.repeat(MAX_WORD_LENGTH)]]) {
+        expect(() => Gaddag.fromArray(words).validate()).not.toThrow();
+        expect(() => Gaddag.deserialize(Gaddag.fromArray(words).serialize()).validate()).not.toThrow();
+      }
+    });
+
+    it('rejects arc arrays of different lengths', () => {
+      const gaddag = Gaddag.fromArray(WORDS);
+      const short = new Gaddag(
+        { arcLabels: gaddag.arcLabels.subarray(1), arcTargets: gaddag.arcTargets, rootRef: gaddag.rootRef },
+        gaddag.charCodes,
+      );
+
+      expect(() => short.validate()).toThrow('arc labels for');
+    });
+
+    it('rejects an automaton without the sentinel arc', () => {
+      const empty = new Gaddag(
+        { arcLabels: new Uint8Array(0), arcTargets: new Int32Array(0), rootRef: 0 },
+        new Int32Array(0),
+      );
+
+      expect(() => empty.validate()).toThrow('arc count 0 below 1');
+    });
+
+    it('rejects an alphabet larger than MAX_LETTERS', () => {
+      const gaddag = Gaddag.fromArray(WORDS);
+      const charCodes = Int32Array.from({ length: MAX_LETTERS + 1 }, (_, index) => 97 + index);
+      const oversized = new Gaddag(gaddag, charCodes);
+
+      expect(() => oversized.validate()).toThrow('letter count 64 outside 0..63');
+    });
+
+    it('rejects a letter outside the alphabet', () => {
+      const gaddag = Gaddag.fromArray(WORDS);
+      const outside = corrupt(gaddag, (arcLabels) => {
+        arcLabels[1] = (arcLabels[1] & LAST_ARC_FLAG) | (gaddag.charCodes.length + 1);
+      });
+
+      expect(() => outside.validate()).toThrow('outside the');
+    });
+
+    it('rejects arcs out of letter order within a state', () => {
+      const gaddag = Gaddag.fromArray(WORDS);
+      const index = nonLastArcIndex(gaddag);
+      const unsorted = corrupt(gaddag, (arcLabels) => {
+        const letter = arcLabels[index] & LETTER_MASK;
+        arcLabels[index] = (arcLabels[index] & LAST_ARC_FLAG) | (arcLabels[index + 1] & LETTER_MASK);
+        arcLabels[index + 1] = (arcLabels[index + 1] & LAST_ARC_FLAG) | letter;
+      });
+
+      expect(() => unsorted.validate()).toThrow('breaks the letter order');
+    });
+
+    it('rejects a target that does not precede its own state, the shape of every cycle', () => {
+      const gaddag = Gaddag.fromArray(WORDS);
+      const selfLoop = corrupt(gaddag, (_, arcTargets) => {
+        arcTargets[1] = 1 << 1;
+      });
+      const forward = corrupt(gaddag, (_, arcTargets) => {
+        arcTargets[1] = gaddag.rootRef;
+      });
+      const negative = corrupt(gaddag, (_, arcTargets) => {
+        arcTargets[1] = -2;
+      });
+
+      for (const cyclic of [selfLoop, forward, negative]) {
+        expect(() => cyclic.validate()).toThrow('does not precede its own state');
+      }
+    });
+
+    it('rejects a target pointing into the middle of a state', () => {
+      const gaddag = Gaddag.fromArray(WORDS);
+      const midState = nonLastArcIndex(gaddag) + 1;
+      const rootArc = gaddag.rootRef >>> 1;
+      expect(midState).toBeLessThan(rootArc);
+      const torn = corrupt(gaddag, (_, arcTargets) => {
+        arcTargets[rootArc] = midState << 1;
+      });
+
+      expect(() => torn.validate()).toThrow('targets the middle of a state');
+    });
+
+    it('rejects the root ref and alphabet faults that deserialize rejects', () => {
+      const gaddag = Gaddag.fromArray(WORDS);
+      const oddRoot = new Gaddag({ ...gaddag, rootRef: gaddag.rootRef | 1 }, gaddag.charCodes);
+      const badAlphabet = new Gaddag(gaddag, Int32Array.from([98, 97]));
+
+      expect(() => oddRoot.validate()).toThrow('marks a word end');
+      expect(() => badAlphabet.validate()).toThrow('not an ascending UTF-16 code unit');
+    });
+  });
+
   describe('serialize/deserialize', () => {
     it('round-trips losslessly', () => {
       const gaddag = Gaddag.fromArray(WORDS);
