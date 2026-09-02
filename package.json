@@ -15,7 +15,7 @@
     "automaton"
   ],
   "engines": {
-    "bun": ">=1.3",
+    "bun": ">=1.4",
     "node": ">=22"
   },
   "type": "module",

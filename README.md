@@ -3,7 +3,7 @@
 
 <img src="https://img.shields.io/github/package-json/v/kamilmielnik/gaddag" alt="Version" />
 <img src="https://img.shields.io/npm/l/@kamilmielnik/gaddag" alt="License" />
-<img src="https://img.shields.io/badge/bun-%3E=1.3-brightgreen.svg" alt="Bun" />
+<img src="https://img.shields.io/badge/bun-%3E=1.4-brightgreen.svg" alt="Bun" />
 <img src="https://img.shields.io/node/v/@kamilmielnik/gaddag" alt="Node version" />
 
 <img src="https://github.com/kamilmielnik/gaddag/actions/workflows/test.yml/badge.svg" alt="Test" />
