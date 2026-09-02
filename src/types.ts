@@ -2,9 +2,10 @@
 export interface Alphabet {
   charCodes: Int32Array;
   /**
-   * Letter index of each UTF-16 code unit, 0 when the code unit is not in the alphabet. 0 is also
-   * the separator's letter index, so do not pass misses on to `Gaddag.getArc` — `Gaddag.getLetter`
-   * answers -1 for them instead.
+   * Letter index of each UTF-16 code unit, 0 when the code unit is not in the alphabet. The table
+   * ends at the alphabet's largest code unit, so a read past its length yields `undefined` rather
+   * than 0 — compare against the length first. 0 is also the separator's letter index, so do not
+   * pass misses on to `Gaddag.getArc` — `Gaddag.getLetter` answers -1 for them instead.
    */
   letterByCharCode: Int32Array;
 }
