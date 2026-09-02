@@ -1,4 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 400" font-family="-apple-system, Segoe UI, Roboto, sans-serif" font-size="13">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 400" role="img" aria-labelledby="chart-title" font-family="-apple-system, Segoe UI, Roboto, sans-serif" font-size="13">
+<title id="chart-title">Gaddag.fromArray — operations per second by dictionary</title>
 <rect width="920" height="400" fill="white"/>
 <line x1="84" y1="350" x2="720" y2="350" stroke="#666" stroke-width="1"/>
 <text x="76" y="354" text-anchor="end" fill="#555">0</text>
@@ -13,9 +14,9 @@
 <line x1="84" y1="24" x2="720" y2="24" stroke="#eee" stroke-width="1"/>
 <text x="76" y="28" text-anchor="end" fill="#555">5</text>
 <text x="22" y="187" text-anchor="middle" fill="#555" transform="rotate(-90 22 187)">ops / sec</text>
-<rect x="96.0" y="107.3" width="202.0" height="242.7" fill="#3b82f6"><title>🇺🇸 en-US · Gaddag.fromArray: 3.72 ops/sec</title></rect>
-<rect x="300.0" y="191.8" width="202.0" height="158.2" fill="#10b981"><title>🇬🇧 en-GB · Gaddag.fromArray: 2.43 ops/sec</title></rect>
-<rect x="504.0" y="339.2" width="202.0" height="10.8" fill="#f59e0b"><title>🇵🇱 pl-PL · Gaddag.fromArray: 0.17 ops/sec</title></rect>
+<rect x="96.0" y="107.4" width="202.0" height="242.6" fill="#3b82f6"><title>🇺🇸 en-US · Gaddag.fromArray: 3.72 ops/sec</title></rect>
+<rect x="300.0" y="191.0" width="202.0" height="159.0" fill="#10b981"><title>🇬🇧 en-GB · Gaddag.fromArray: 2.44 ops/sec</title></rect>
+<rect x="504.0" y="339.3" width="202.0" height="10.7" fill="#f59e0b"><title>🇵🇱 pl-PL · Gaddag.fromArray: 0.16 ops/sec</title></rect>
 <text x="402" y="376" text-anchor="middle" fill="#111" font-weight="600" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">Gaddag.fromArray</text>
 <rect x="744" y="24" width="14" height="14" rx="2" fill="#3b82f6"/>
 <text x="766" y="35" fill="#222" font-weight="600">🇺🇸 en-US</text>

@@ -260,12 +260,29 @@ Benchmarks are produced by [`bench/index.ts`](https://github.com/kamilmielnik/ga
 
 <!-- BENCH:fast:start -->
 ![Fast operations chart](https://raw.githubusercontent.com/kamilmielnik/gaddag/master/bench/charts/fast.svg)
+
+| ops / sec | 🇺🇸 en-US | 🇬🇧 en-GB | 🇵🇱 pl-PL |
+| --- | ---: | ---: | ---: |
+| `has (hit)` | 8.15M | 6.99M | 4.27M |
+| `has (miss)` | 8.83M | 7.80M | 5.17M |
+| `hasPrefix (hit)` | 19.19M | 17.66M | 17.82M |
+| `hasPrefix (miss)` | 21.38M | 19.02M | 19.65M |
+| `getArc` | 30.67M | 25.39M | 22.86M |
+| `Gaddag.deserialize` | 5.46M | 5.42M | 4.83M |
 <!-- BENCH:fast:end -->
 
 <!-- BENCH:fromArray:start -->
 ![Gaddag.fromArray chart](https://raw.githubusercontent.com/kamilmielnik/gaddag/master/bench/charts/fromArray.svg)
+
+| ops / sec | 🇺🇸 en-US | 🇬🇧 en-GB | 🇵🇱 pl-PL |
+| --- | ---: | ---: | ---: |
+| `Gaddag.fromArray` | 3.72 | 2.44 | 0.16 |
 <!-- BENCH:fromArray:end -->
 
 <!-- BENCH:serialize:start -->
 ![Serialize chart](https://raw.githubusercontent.com/kamilmielnik/gaddag/master/bench/charts/serialize.svg)
+
+| ops / sec | 🇺🇸 en-US | 🇬🇧 en-GB | 🇵🇱 pl-PL |
+| --- | ---: | ---: | ---: |
+| `serialize` | 2.45k | 1.68k | 469.87 |
 <!-- BENCH:serialize:end -->

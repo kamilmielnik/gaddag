@@ -20,6 +20,10 @@ const BUILD_MARKER = 'BENCH:fromArray';
 const SERIALIZE_MARKER = 'BENCH:serialize';
 const DICTIONARIES_MARKER = 'DICTIONARIES';
 
+const FAST_TITLE = 'Fast operations';
+const BUILD_TITLE = 'Gaddag.fromArray';
+const SERIALIZE_TITLE = 'Serialize';
+
 const FAST_OPERATIONS = [
   'has (hit)',
   'has (miss)',
@@ -79,16 +83,34 @@ async function main(): Promise<void> {
 
   console.log('Rendering charts...');
   await mkdir(fileURLToPath(CHARTS_DIR), { recursive: true });
-  await writeFile(new URL('fast.svg', CHARTS_DIR), renderChart(FAST_OPERATIONS, dictionaries, fastResults));
-  await writeFile(new URL('fromArray.svg', CHARTS_DIR), renderChart(BUILD_OPERATIONS, dictionaries, slowResults));
-  await writeFile(new URL('serialize.svg', CHARTS_DIR), renderChart(SERIALIZE_OPERATIONS, dictionaries, slowResults));
+  await writeFile(new URL('fast.svg', CHARTS_DIR), renderChart(FAST_TITLE, FAST_OPERATIONS, dictionaries, fastResults));
+  await writeFile(
+    new URL('fromArray.svg', CHARTS_DIR),
+    renderChart(BUILD_TITLE, BUILD_OPERATIONS, dictionaries, slowResults),
+  );
+  await writeFile(
+    new URL('serialize.svg', CHARTS_DIR),
+    renderChart(SERIALIZE_TITLE, SERIALIZE_OPERATIONS, dictionaries, slowResults),
+  );
 
   console.log('Updating README.md...');
   const original = await readFile(README_PATH, 'utf-8');
   let updated = replaceBetween(original, DICTIONARIES_MARKER, formatDictionaryTable(dictionaries));
-  updated = replaceBetween(updated, FAST_MARKER, `![Fast operations chart](${CHARTS_URL_BASE}/fast.svg)`);
-  updated = replaceBetween(updated, BUILD_MARKER, `![Gaddag.fromArray chart](${CHARTS_URL_BASE}/fromArray.svg)`);
-  updated = replaceBetween(updated, SERIALIZE_MARKER, `![Serialize chart](${CHARTS_URL_BASE}/serialize.svg)`);
+  updated = replaceBetween(
+    updated,
+    FAST_MARKER,
+    formatChartSection(FAST_TITLE, 'fast.svg', FAST_OPERATIONS, dictionaries, fastResults),
+  );
+  updated = replaceBetween(
+    updated,
+    BUILD_MARKER,
+    formatChartSection(BUILD_TITLE, 'fromArray.svg', BUILD_OPERATIONS, dictionaries, slowResults),
+  );
+  updated = replaceBetween(
+    updated,
+    SERIALIZE_MARKER,
+    formatChartSection(SERIALIZE_TITLE, 'serialize.svg', SERIALIZE_OPERATIONS, dictionaries, slowResults),
+  );
 
   if (updated !== original) {
     await writeFile(README_PATH, updated);
@@ -312,6 +334,7 @@ const GRIDLINE_COUNT = 5;
 const LEGEND_ROW_HEIGHT = 44;
 
 function renderChart(
+  title: string,
   operations: string[],
   dictionaries: Dictionary[],
   results: Map<string, Map<string, number>>,
@@ -340,8 +363,9 @@ function renderChart(
 
   const parts: string[] = [];
   parts.push(
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${WIDTH} ${HEIGHT}" font-family="-apple-system, Segoe UI, Roboto, sans-serif" font-size="13">`,
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${WIDTH} ${HEIGHT}" role="img" aria-labelledby="chart-title" font-family="-apple-system, Segoe UI, Roboto, sans-serif" font-size="13">`,
   );
+  parts.push(`<title id="chart-title">${escapeXml(title)} — operations per second by dictionary</title>`);
   parts.push(`<rect width="${WIDTH}" height="${HEIGHT}" fill="white"/>`);
 
   for (let gridline = 0; gridline <= GRIDLINE_COUNT; ++gridline) {
@@ -469,6 +493,28 @@ const XML_ESCAPES: Record<string, string> = { '<': '&lt;', '>': '&gt;', '&': '&a
 
 function escapeXml(text: string): string {
   return text.replace(/[<>&"]/g, (character) => XML_ESCAPES[character] ?? character);
+}
+
+/**
+ * The chart plus the same numbers as text — the SVG's tooltips are inert inside
+ * an <img>, so without the table nobody could read a value off the README.
+ */
+function formatChartSection(
+  title: string,
+  file: string,
+  operations: string[],
+  dictionaries: Dictionary[],
+  results: Map<string, Map<string, number>>,
+): string {
+  const image = `![${title} chart](${CHARTS_URL_BASE}/${file})`;
+  const header =
+    `| ops / sec | ${dictionaries.map((dictionary) => `${dictionary.flag} ${dictionary.lang}`).join(' | ')} |\n` +
+    `| --- | ${dictionaries.map(() => '---:').join(' | ')} |`;
+  const rows = operations.map(
+    (operation) =>
+      `| \`${operation}\` | ${dictionaries.map((dictionary) => formatHertz(resultOf(results, dictionary, operation))).join(' | ')} |`,
+  );
+  return [image, '', header, ...rows].join('\n');
 }
 
 function formatDictionaryTable(dictionaries: Dictionary[]): string {

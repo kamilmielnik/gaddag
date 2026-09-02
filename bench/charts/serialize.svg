@@ -1,21 +1,22 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 400" font-family="-apple-system, Segoe UI, Roboto, sans-serif" font-size="13">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 400" role="img" aria-labelledby="chart-title" font-family="-apple-system, Segoe UI, Roboto, sans-serif" font-size="13">
+<title id="chart-title">Serialize — operations per second by dictionary</title>
 <rect width="920" height="400" fill="white"/>
 <line x1="84" y1="350" x2="720" y2="350" stroke="#666" stroke-width="1"/>
 <text x="76" y="354" text-anchor="end" fill="#555">0</text>
 <line x1="84" y1="284.8" x2="720" y2="284.8" stroke="#eee" stroke-width="1"/>
-<text x="76" y="288.8" text-anchor="end" fill="#555">200</text>
+<text x="76" y="288.8" text-anchor="end" fill="#555">1k</text>
 <line x1="84" y1="219.6" x2="720" y2="219.6" stroke="#eee" stroke-width="1"/>
-<text x="76" y="223.6" text-anchor="end" fill="#555">400</text>
+<text x="76" y="223.6" text-anchor="end" fill="#555">2k</text>
 <line x1="84" y1="154.4" x2="720" y2="154.4" stroke="#eee" stroke-width="1"/>
-<text x="76" y="158.4" text-anchor="end" fill="#555">600</text>
+<text x="76" y="158.4" text-anchor="end" fill="#555">3k</text>
 <line x1="84" y1="89.19999999999999" x2="720" y2="89.19999999999999" stroke="#eee" stroke-width="1"/>
-<text x="76" y="93.19999999999999" text-anchor="end" fill="#555">800</text>
+<text x="76" y="93.19999999999999" text-anchor="end" fill="#555">4k</text>
 <line x1="84" y1="24" x2="720" y2="24" stroke="#eee" stroke-width="1"/>
-<text x="76" y="28" text-anchor="end" fill="#555">1k</text>
+<text x="76" y="28" text-anchor="end" fill="#555">5k</text>
 <text x="22" y="187" text-anchor="middle" fill="#555" transform="rotate(-90 22 187)">ops / sec</text>
-<rect x="96.0" y="31.9" width="202.0" height="318.1" fill="#3b82f6"><title>🇺🇸 en-US · serialize: 975.71 ops/sec</title></rect>
-<rect x="300.0" y="146.2" width="202.0" height="203.8" fill="#10b981"><title>🇬🇧 en-GB · serialize: 625.26 ops/sec</title></rect>
-<rect x="504.0" y="299.7" width="202.0" height="50.3" fill="#f59e0b"><title>🇵🇱 pl-PL · serialize: 154.17 ops/sec</title></rect>
+<rect x="96.0" y="190.3" width="202.0" height="159.7" fill="#3b82f6"><title>🇺🇸 en-US · serialize: 2.45k ops/sec</title></rect>
+<rect x="300.0" y="240.4" width="202.0" height="109.6" fill="#10b981"><title>🇬🇧 en-GB · serialize: 1.68k ops/sec</title></rect>
+<rect x="504.0" y="319.4" width="202.0" height="30.6" fill="#f59e0b"><title>🇵🇱 pl-PL · serialize: 469.87 ops/sec</title></rect>
 <text x="402" y="376" text-anchor="middle" fill="#111" font-weight="600" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">serialize</text>
 <rect x="744" y="24" width="14" height="14" rx="2" fill="#3b82f6"/>
 <text x="766" y="35" fill="#222" font-weight="600">🇺🇸 en-US</text>
