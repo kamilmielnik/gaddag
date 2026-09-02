@@ -62,9 +62,8 @@ See full [API Docs](https://github.com/kamilmielnik/gaddag/blob/master/docs/READ
 
 Good to know:
 
-- a [`Gaddag`](https://github.com/kamilmielnik/gaddag/blob/master/docs/classes/Gaddag.md) is immutable — to change the dictionary, build a new one with [`Gaddag.fromArray`](https://github.com/kamilmielnik/gaddag/blob/master/docs/classes/Gaddag.md#fromarray)
+- a [`Gaddag`](https://github.com/kamilmielnik/gaddag/blob/master/docs/classes/Gaddag.md) is immutable by convention, not by enforcement: to change the dictionary, build a new one with [`Gaddag.fromArray`](https://github.com/kamilmielnik/gaddag/blob/master/docs/classes/Gaddag.md#fromarray) — the backing typed arrays are exposed directly (and shared with the input of [`Gaddag.deserialize`](https://github.com/kamilmielnik/gaddag/blob/master/docs/classes/Gaddag.md#deserialize) when it is 4-byte aligned), so treat them as read-only, writing to them corrupts the automaton
 - [`Gaddag.deserialize`](https://github.com/kamilmielnik/gaddag/blob/master/docs/classes/Gaddag.md#deserialize) checks the header, the alphabet, and two arc labels (the root's state boundary and the final arc's terminator), trusting the arcs otherwise — [`validate`](https://github.com/kamilmielnik/gaddag/blob/master/docs/classes/Gaddag.md#validate) proves the rest in one pass, see [Garbage in, garbage out](#garbage-in-garbage-out)
-- immutability is not enforced: the backing typed arrays are exposed directly (and shared with the input of [`Gaddag.deserialize`](https://github.com/kamilmielnik/gaddag/blob/master/docs/classes/Gaddag.md#deserialize) when it is 4-byte aligned) — treat them as read-only, writing to them corrupts the automaton
 - all exports are named (there is no default export)
 - `MAX_LETTERS`, `MAX_WORD_LENGTH`, and `MAX_WORDS` are described in [Limits](#limits)
 - the build pipeline behind `Gaddag.fromArray` (`scanWords`, `encodeWords`, `generateItems`, `sortItems`, `insertItems`) is exported too, along with its types, for custom tooling
