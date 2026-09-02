@@ -8,7 +8,7 @@
 
 > **scanWords**(`words`): [`WordListScan`](../interfaces/WordListScan.md)
 
-Defined in: [buildGaddag.ts:12](https://github.com/kamilmielnik/gaddag/blob/master/src/buildGaddag.ts#L12)
+Defined in: [buildGaddag.ts:17](https://github.com/kamilmielnik/gaddag/blob/master/src/buildGaddag.ts#L17)
 
 Collects the alphabet of a word list (ordered by UTF-16 code unit) and counts
 the kept words and letters. Enforces [MAX\_LETTERS](../variables/MAX_LETTERS.md) and [MAX\_WORDS](../variables/MAX_WORDS.md),

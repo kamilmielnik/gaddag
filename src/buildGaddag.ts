@@ -1,8 +1,13 @@
-import { LAST_ARC_FLAG, LETTER_MASK, MAX_LETTERS, MAX_WORD_LENGTH, MAX_WORDS } from './constants.ts';
+import {
+  LAST_ARC_FLAG,
+  LETTER_MASK,
+  MAX_CHAR_CODE,
+  MAX_LETTERS,
+  MAX_WORD_LENGTH,
+  MAX_WORDS,
+  SEPARATOR,
+} from './constants.ts';
 import { type EncodedWords, type GaddagArcs, type WordListScan } from './types.ts';
-
-/** Char codes are UTF-16 code units, so this bounds the alphabet scan table. */
-const CHAR_CODE_COUNT = 0x10000;
 
 /**
  * Collects the alphabet of a word list (ordered by UTF-16 code unit) and counts
@@ -14,7 +19,7 @@ export function scanWords(words: string[]): WordListScan {
    * One flag per code unit — far cheaper than a Set at dictionary scale, and
    * scanning the flags in order yields the sorted alphabet for free.
    */
-  const seen = new Uint8Array(CHAR_CODE_COUNT);
+  const seen = new Uint8Array(MAX_CHAR_CODE + 1);
   let lettersCount = 0;
   let itemsCount = 0;
   let wordsCount = 0;
@@ -116,6 +121,10 @@ export function generateItems(wordOffsets: Int32Array): Int32Array {
   return items;
 }
 
+/** Radix character of a sequence's end — it sorts before every letter, so a sequence precedes its extensions. */
+const END_OF_SEQUENCE = 0;
+
+/** Radix characters: the end of a sequence, then every letter index (the separator included) shifted up by one. */
 const RADIX = MAX_LETTERS + 2;
 
 const INSERTION_SORT_THRESHOLD = 24;
@@ -192,12 +201,12 @@ export function sortItems(items: Int32Array, wordBytes: Uint8Array, wordOffsets:
         }
       }
 
-      if (singleBucket > 0) {
+      if (singleBucket > END_OF_SEQUENCE) {
         ++depth;
         continue;
       }
 
-      if (singleBucket === 0) {
+      if (singleBucket === END_OF_SEQUENCE) {
         break;
       }
 
@@ -243,7 +252,7 @@ export function sortItems(items: Int32Array, wordBytes: Uint8Array, wordOffsets:
         }
       }
 
-      for (let bucket = 1; bucket < RADIX; ++bucket) {
+      for (let bucket = END_OF_SEQUENCE + 1; bucket < RADIX; ++bucket) {
         if (counts[bucket] > 1) {
           push(starts[bucket], starts[bucket] + counts[bucket], depth + 1);
         }
@@ -292,16 +301,13 @@ function compareItems(
       return leftCharacter - rightCharacter;
     }
 
-    if (leftCharacter === 0) {
+    if (leftCharacter === END_OF_SEQUENCE) {
       return 0;
     }
   }
 }
 
-/**
- * Radix character of sequence `item` at position `depth`:
- * 0 = end of sequence, 1 = separator, letter + 1 otherwise.
- */
+/** Radix character of sequence `item` at position `depth`. */
 function charAt(item: number, depth: number, wordBytes: Uint8Array, wordOffsets: Int32Array): number {
   const wordIndex = item >>> 6;
   const split = item & 63;
@@ -312,10 +318,10 @@ function charAt(item: number, depth: number, wordBytes: Uint8Array, wordOffsets:
   }
 
   if (depth === split) {
-    return split < wordOffsets[wordIndex + 1] - offset ? 1 : 0;
+    return split < wordOffsets[wordIndex + 1] - offset ? SEPARATOR + 1 : END_OF_SEQUENCE;
   }
 
-  return depth <= wordOffsets[wordIndex + 1] - offset ? wordBytes[offset + depth - 1] + 1 : 0;
+  return depth <= wordOffsets[wordIndex + 1] - offset ? wordBytes[offset + depth - 1] + 1 : END_OF_SEQUENCE;
 }
 
 /** A GADDAG sequence is at most a maximum-length word behind its separator. */
@@ -354,7 +360,7 @@ export function insertItems(items: Int32Array, wordBytes: Uint8Array, wordOffset
     }
 
     if (split < length) {
-      sequence[sequenceLength] = 0;
+      sequence[sequenceLength] = SEPARATOR;
       ++sequenceLength;
 
       for (let position = split; position < length; ++position) {

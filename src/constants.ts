@@ -42,3 +42,6 @@ export const MAGIC = 0x31474447;
 
 /** Byte size of the serialization header: magic, letter count, arc count, root ref. */
 export const HEADER_BYTES = 16;
+
+/** Char codes are UTF-16 code units, so no alphabet entry can exceed this. */
+export const MAX_CHAR_CODE = 0xffff;

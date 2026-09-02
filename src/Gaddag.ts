@@ -1,9 +1,6 @@
 import { encodeWords, generateItems, insertItems, scanWords, sortItems } from './buildGaddag.ts';
-import { HEADER_BYTES, LAST_ARC_FLAG, LETTER_MASK, MAGIC, MAX_LETTERS, SEPARATOR } from './constants.ts';
+import { HEADER_BYTES, LAST_ARC_FLAG, LETTER_MASK, MAGIC, MAX_CHAR_CODE, MAX_LETTERS, SEPARATOR } from './constants.ts';
 import { type GaddagArcs } from './types.ts';
-
-/** Char codes are UTF-16 code units, so serialized alphabets cannot exceed this. */
-const MAX_CHAR_CODE = 0xffff;
 
 /**
  * A GADDAG (Gordon, 1994) stored as flat typed arrays for speed and compact serialization.
