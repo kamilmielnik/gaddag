@@ -63,14 +63,26 @@ export function scanWords(words: string[]): WordListScan {
     }
   }
 
-  const maxCharCode = lettersCount === 0 ? -1 : charCodes[lettersCount - 1];
+  return { charCodes, itemsCount, letterByCharCode: mapCharCodesToLetters(charCodes), wordsCount };
+}
+
+/** Builds the code unit → letter index table of an alphabet, sized to its largest code unit. */
+export function mapCharCodesToLetters(charCodes: Int32Array): Uint8Array {
+  let maxCharCode = -1;
+
+  for (let index = 0; index < charCodes.length; ++index) {
+    if (charCodes[index] > maxCharCode) {
+      maxCharCode = charCodes[index];
+    }
+  }
+
   const letterByCharCode = new Uint8Array(maxCharCode + 1);
 
   for (let index = 0; index < charCodes.length; ++index) {
     letterByCharCode[charCodes[index]] = index + 1;
   }
 
-  return { charCodes, itemsCount, letterByCharCode, wordsCount };
+  return letterByCharCode;
 }
 
 /**

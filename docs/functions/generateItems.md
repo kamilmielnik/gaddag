@@ -8,7 +8,7 @@
 
 > **generateItems**(`wordOffsets`): `Int32Array`
 
-Defined in: [buildGaddag.ts:112](https://github.com/kamilmielnik/gaddag/blob/master/src/buildGaddag.ts#L112)
+Defined in: [buildGaddag.ts:124](https://github.com/kamilmielnik/gaddag/blob/master/src/buildGaddag.ts#L124)
 
 Enumerates every `(word, split)` pair as a packed integer — one per GADDAG sequence.
 

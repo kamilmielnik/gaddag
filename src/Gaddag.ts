@@ -1,4 +1,4 @@
-import { encodeWords, generateItems, insertItems, scanWords, sortItems } from './buildGaddag.ts';
+import { encodeWords, generateItems, insertItems, mapCharCodesToLetters, scanWords, sortItems } from './buildGaddag.ts';
 import { HEADER_BYTES, LAST_ARC_FLAG, LETTER_MASK, MAGIC, MAX_CHAR_CODE, MAX_LETTERS, SEPARATOR } from './constants.ts';
 import { type GaddagArcs } from './types.ts';
 
@@ -46,7 +46,7 @@ export class Gaddag {
     const items = generateItems(wordOffsets);
     sortItems(items, wordBytes, wordOffsets);
     const arcs = insertItems(items, wordBytes, wordOffsets);
-    return new Gaddag(arcs, scan.charCodes);
+    return new Gaddag(arcs, scan.charCodes, scan.letterByCharCode);
   }
 
   /**
@@ -146,30 +146,16 @@ export class Gaddag {
   /**
    * Wraps pre-built arcs without any validation — prefer {@link Gaddag.fromArray}
    * and {@link Gaddag.deserialize}. Lookups on invalid arcs terminate but
-   * return incorrect results. The code-unit → letter table is derived from
-   * `charCodes`, so an `Alphabet`'s `letterByCharCode` is not needed here.
+   * return incorrect results. `letterByCharCode` is the `Alphabet` table of
+   * `charCodes`; it is derived from them when omitted.
    */
-  constructor(arcs: GaddagArcs, charCodes: Int32Array) {
+  constructor(arcs: GaddagArcs, charCodes: Int32Array, letterByCharCode = mapCharCodesToLetters(charCodes)) {
     const { arcLabels, arcTargets, rootRef } = arcs;
     this.arcLabels = arcLabels;
     this.arcTargets = arcTargets;
     this.rootRef = rootRef;
     this.charCodes = charCodes;
-
-    let maxCharCode = 0;
-
-    for (let index = 0; index < charCodes.length; ++index) {
-      if (charCodes[index] > maxCharCode) {
-        maxCharCode = charCodes[index];
-      }
-    }
-
-    this.letterByCharCode = new Uint8Array(maxCharCode + 1);
-
-    for (let index = 0; index < charCodes.length; ++index) {
-      this.letterByCharCode[charCodes[index]] = index + 1;
-    }
-
+    this.letterByCharCode = letterByCharCode;
     this.rootArcs = new Int32Array(MAX_LETTERS + 1);
     let arcIndex = rootRef >>> 1;
 
