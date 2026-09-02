@@ -143,9 +143,11 @@ async function readWords(path: string): Promise<string[]> {
   return lines.map((line) => line.trim()).filter((line) => /^\p{L}+$/u.test(line));
 }
 
-// Each benchmarked operation cycles through this many words spread evenly across
-// the dictionary — querying a single word over and over would only measure a
-// fully cached, branch-predicted best case. Power of two, so cycling is a mask.
+/**
+ * Each benchmarked operation cycles through this many words spread evenly across
+ * the dictionary — querying a single word over and over would only measure a
+ * fully cached, branch-predicted best case. Power of two, so cycling is a mask.
+ */
 const SAMPLE_SIZE = 1024;
 const SAMPLE_MASK = SAMPLE_SIZE - 1;
 
@@ -157,9 +159,11 @@ async function runFast(dictionary: Dictionary): Promise<Map<string, number>> {
   const { gaddag } = dictionary;
   const presentWords = sampleWords(dictionary.words, SAMPLE_SIZE);
   const missingWords = presentWords.map((word) => perturb(gaddag, word, (candidate) => gaddag.has(candidate)));
-  // Sampled from the words long enough to fill a prefix, so every prefix measured
-  // is the same length. A shorter one has too few variations to perturb: in a
-  // dictionary this size, every two-letter string is a prefix of something.
+  /**
+   * Sampled from the words long enough to fill a prefix, so every prefix measured
+   * is the same length. A shorter one has too few variations to perturb: in a
+   * dictionary this size, every two-letter string is a prefix of something.
+   */
   const longWords = dictionary.words.filter((word) => word.length >= PREFIX_LENGTH);
   const presentPrefixes = sampleWords(longWords, SAMPLE_SIZE).map((word) => word.slice(0, PREFIX_LENGTH));
   const missingPrefixes = presentPrefixes.map((prefix) =>
@@ -207,10 +211,12 @@ function sampleWords(words: string[], count: number): string[] {
   return Array.from({ length: count }, (_, index) => words[Math.floor((index * words.length) / count)]);
 }
 
-// A miss of the same length as the hit it came from, so the two bars of a chart
-// differ in the answer and not in how much string there was to walk. Lookups
-// consume their input right-to-left, so substituting the leftmost character
-// first leaves the walk as deep as the matching one.
+/**
+ * A miss of the same length as the hit it came from, so the two bars of a chart
+ * differ in the answer and not in how much string there was to walk. Lookups
+ * consume their input right-to-left, so substituting the leftmost character
+ * first leaves the walk as deep as the matching one.
+ */
 function perturb(gaddag: Gaddag, value: string, matches: (candidate: string) => boolean): string {
   for (let position = 0; position < value.length; ++position) {
     for (const charCode of gaddag.charCodes) {
@@ -225,9 +231,11 @@ function perturb(gaddag: Gaddag, value: string, matches: (candidate: string) => 
   throw new Error(`Every single-character variation of "${value}" is in the dictionary`);
 }
 
-// Every (ref, letter) step of walking the sampled words — the root fast path and
-// interior linear scans in the proportion a traversal actually meets them.
-// Truncated to a power of two, so cycling through the pool is a mask.
+/**
+ * Every (ref, letter) step of walking the sampled words — the root fast path and
+ * interior linear scans in the proportion a traversal actually meets them.
+ * Truncated to a power of two, so cycling through the pool is a mask.
+ */
 function sampleArcSteps(gaddag: Gaddag, words: string[]): { arcRefs: number[]; arcLetters: number[]; arcMask: number } {
   const arcRefs: number[] = [];
   const arcLetters: number[] = [];
@@ -427,8 +435,10 @@ function formatHertz(hertz: number): string {
   return hertz.toFixed(2);
 }
 
-// Axis ticks land on fifths of a 1/2/5 × 10^n maximum, so a tick like 1.2M must
-// keep its decimal — rounding would label both 1.2M and 1.6M gridlines "1M"/"2M".
+/**
+ * Axis ticks land on fifths of a 1/2/5 × 10^n maximum, so a tick like 1.2M must
+ * keep its decimal — rounding would label both 1.2M and 1.6M gridlines "1M"/"2M".
+ */
 function formatHertzAxis(hertz: number): string {
   if (hertz >= 1_000_000) {
     return `${formatAxisValue(hertz / 1_000_000)}M`;

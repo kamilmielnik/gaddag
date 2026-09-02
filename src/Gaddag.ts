@@ -66,8 +66,10 @@ export class Gaddag {
    * Only deserialize data you serialized yourself.
    */
   public static deserialize(bytes: Uint8Array): Gaddag {
-    // Note: an explicit copy (not .slice()) — Buffer.prototype.slice returns a
-    // view that would keep the misaligned byteOffset.
+    /**
+     * An explicit copy (not .slice()) — Buffer.prototype.slice returns a
+     * view that would keep the misaligned byteOffset.
+     */
     const aligned = bytes.byteOffset % 4 === 0 ? bytes : new Uint8Array(bytes);
 
     if (aligned.byteLength < HEADER_BYTES) {
@@ -80,8 +82,10 @@ export class Gaddag {
     const rootRef = header[3];
     const expectedByteLength = HEADER_BYTES + 4 * (letterCount + arcCount) + arcCount;
 
-    // The root is never a word end — empty words are skipped — so a set
-    // word-end bit on the root ref means corruption.
+    /**
+     * The root is never a word end — empty words are skipped — so a set
+     * word-end bit on the root ref means corruption.
+     */
     if (
       header[0] !== MAGIC ||
       letterCount < 0 ||
@@ -97,8 +101,10 @@ export class Gaddag {
 
     const charCodes = new Int32Array(aligned.buffer, aligned.byteOffset + HEADER_BYTES, letterCount);
 
-    // Char codes must be ascending UTF-16 code units — an unchecked huge value
-    // would make the constructor allocate a code-unit table of that size.
+    /**
+     * Char codes must be ascending UTF-16 code units — an unchecked huge value
+     * would make the constructor allocate a code-unit table of that size.
+     */
     let previousCharCode = -1;
 
     for (let index = 0; index < letterCount; ++index) {
@@ -118,15 +124,19 @@ export class Gaddag {
       arcCount,
     );
 
-    // Every arc scan stops at the last arc of its state, so a terminated final
-    // arc is what keeps scans from running past the end of the array. An empty
-    // dictionary has no arcs at all — only the unused sentinel at index 0.
+    /**
+     * Every arc scan stops at the last arc of its state, so a terminated final
+     * arc is what keeps scans from running past the end of the array. An empty
+     * dictionary has no arcs at all — only the unused sentinel at index 0.
+     */
     if (arcCount > 1 && arcLabels[arcCount - 1] < LAST_ARC_FLAG) {
       throw new Error('Invalid Gaddag data');
     }
 
-    // A state starts at index 1 or right after a LAST-flagged arc — a root ref
-    // pointing mid-state would silently drop the root arcs in front of it.
+    /**
+     * A state starts at index 1 or right after a LAST-flagged arc — a root ref
+     * pointing mid-state would silently drop the root arcs in front of it.
+     */
     const rootArcIndex = rootRef >>> 1;
 
     if (rootArcIndex > 1 && arcLabels[rootArcIndex - 1] < LAST_ARC_FLAG) {

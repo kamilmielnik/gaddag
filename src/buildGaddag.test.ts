@@ -193,8 +193,10 @@ describe('Gaddag.fromArray', () => {
   });
 
   it('scales to word lists that overflow the initial storage', () => {
-    // Enough random words to grow the arc storage, rehash the state registry,
-    // and grow the radix-sort stack.
+    /**
+     * Enough random words to grow the arc storage, rehash the state registry,
+     * and grow the radix-sort stack.
+     */
     const randomWord = createRandomWordGenerator(7, 'abcdefghij', 10);
     const words = new Set<string>();
 

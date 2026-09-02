@@ -10,8 +10,10 @@ const CHAR_CODE_COUNT = 0x10000;
  * guarding every pipeline built on the scan.
  */
 export function scanWords(words: string[]): WordListScan {
-  // One flag per code unit — far cheaper than a Set at dictionary scale, and
-  // scanning the flags in order yields the sorted alphabet for free.
+  /**
+   * One flag per code unit — far cheaper than a Set at dictionary scale, and
+   * scanning the flags in order yields the sorted alphabet for free.
+   */
   const seen = new Uint8Array(CHAR_CODE_COUNT);
   let lettersCount = 0;
   let itemsCount = 0;
@@ -120,9 +122,11 @@ const INSERTION_SORT_THRESHOLD = 24;
 
 /** Orders the sequences with an in-place MSD radix sort. */
 export function sortItems(items: Int32Array, wordBytes: Uint8Array, wordOffsets: Int32Array): void {
-  // Radix character of each item in the range being scattered, so the in-place
-  // scatter does not recompute it as items move — 1 byte per item, in place of
-  // the 4 bytes per item an auxiliary scatter buffer would cost.
+  /**
+   * Radix character of each item in the range being scattered, so the in-place
+   * scatter does not recompute it as items move — 1 byte per item, in place of
+   * the 4 bytes per item an auxiliary scatter buffer would cost.
+   */
   const buckets = new Uint8Array(items.length);
   const counts = new Int32Array(RADIX);
   const starts = new Int32Array(RADIX);
@@ -156,8 +160,10 @@ export function sortItems(items: Int32Array, wordBytes: Uint8Array, wordOffsets:
       continue;
     }
 
-    // Bucketing costs a fixed pass over all 65 buckets, which dwarfs the work
-    // for the many tiny ranges a radix sort produces near the leaves.
+    /**
+     * Bucketing costs a fixed pass over all 65 buckets, which dwarfs the work
+     * for the many tiny ranges a radix sort produces near the leaves.
+     */
     if (high - low <= INSERTION_SORT_THRESHOLD) {
       sortRangeByInsertion(items, low, high, depth, wordBytes, wordOffsets);
       continue;
@@ -209,10 +215,12 @@ export function sortItems(items: Int32Array, wordBytes: Uint8Array, wordOffsets:
         --lastBucket;
       }
 
-      // In-place scatter (American flag sort) — swaps each item into its bucket,
-      // chasing the displaced item. Chains only ever displace items still at
-      // their count-pass positions, so the cached radix characters stay valid,
-      // and once every earlier bucket is settled the last one already is.
+      /**
+       * In-place scatter (American flag sort) — swaps each item into its bucket,
+       * chasing the displaced item. Chains only ever displace items still at
+       * their count-pass positions, so the cached radix characters stay valid,
+       * and once every earlier bucket is settled the last one already is.
+       */
       for (let bucket = 0; bucket < lastBucket; ++bucket) {
         const end = starts[bucket] + counts[bucket];
 
@@ -325,8 +333,10 @@ const MAX_ARCS_PER_STATE = MAX_LETTERS + 1;
  */
 export function insertItems(items: Int32Array, wordBytes: Uint8Array, wordOffsets: Int32Array): GaddagArcs {
   const builder = new Builder();
-  // Two buffers alternate: the builder keeps the last sequence for its common-prefix
-  // comparison, so the next sequence must be built elsewhere.
+  /**
+   * Two buffers alternate: the builder keeps the last sequence for its common-prefix
+   * comparison, so the next sequence must be built elsewhere.
+   */
   let sequence = new Uint8Array(MAX_SEQUENCE_LENGTH);
   let spare = new Uint8Array(MAX_SEQUENCE_LENGTH);
 
@@ -378,8 +388,10 @@ class Builder {
   private targets: Int32Array;
   private arcTop: number;
 
-  // Open-addressing registry of frozen states, storing first-arc indices (0 = empty slot).
-  // Each entry's hash is kept alongside, so growing rehashes without re-reading arcs.
+  /**
+   * Open-addressing registry of frozen states, storing first-arc indices (0 = empty slot).
+   * Each entry's hash is kept alongside, so growing rehashes without re-reading arcs.
+   */
   private table: Int32Array;
   private tableHashes: Int32Array;
   private tableCount: number;
@@ -419,8 +431,10 @@ class Builder {
       ++commonPrefixLength;
     }
 
-    // A sequence sorting below the previous one — or being its strict prefix —
-    // would have to reopen already-frozen states and silently corrupt them.
+    /**
+     * A sequence sorting below the previous one — or being its strict prefix —
+     * would have to reopen already-frozen states and silently corrupt them.
+     */
     const outOfOrder =
       commonPrefixLength < maxCommon
         ? sequence[commonPrefixLength] < previous[commonPrefixLength]

@@ -87,8 +87,10 @@ describe('Gaddag', () => {
       expect(gaddag.has('💙b')).toBe(true);
       expect(gaddag.has('💚b')).toBe(false);
       expect(gaddag.has('💙a')).toBe(false);
-      // The two emoji share a leading surrogate but not a trailing one, so with
-      // 'a' and 'b' they take 5 of the 63 alphabet slots.
+      /**
+       * The two emoji share a leading surrogate but not a trailing one, so with
+       * 'a' and 'b' they take 5 of the 63 alphabet slots.
+       */
       expect(gaddag.charCodes.length).toBe(5);
     });
 
@@ -300,8 +302,10 @@ describe('Gaddag', () => {
 
     it('rejects data truncated to a prefix of a valid serialization', () => {
       const bytes = Gaddag.fromArray(WORDS).serialize();
-      // A subarray shares the full underlying buffer — deserialization must
-      // respect the view's byteLength, not the buffer's.
+      /**
+       * A subarray shares the full underlying buffer — deserialization must
+       * respect the view's byteLength, not the buffer's.
+       */
       expect(() => Gaddag.deserialize(bytes.subarray(0, bytes.length - 5))).toThrow('Invalid Gaddag data');
     });
 
@@ -331,8 +335,10 @@ describe('Gaddag', () => {
     });
 
     it('rejects data whose root ref has the word-end bit set', () => {
-      // A final root would mean the empty string is a word — serialize never
-      // writes one, and hasPrefix('') would report a non-empty dictionary.
+      /**
+       * A final root would mean the empty string is a word — serialize never
+       * writes one, and hasPrefix('') would report a non-empty dictionary.
+       */
       const bytes = Gaddag.fromArray(WORDS).serialize();
       new Int32Array(bytes.buffer, 0, 4)[3] |= 1;
       expect(() => Gaddag.deserialize(bytes)).toThrow('Invalid Gaddag data');
@@ -345,8 +351,10 @@ describe('Gaddag', () => {
     });
 
     it('rejects data with a char code above the UTF-16 range', () => {
-      // An unchecked huge char code would make the constructor allocate
-      // a proportionally huge code-unit table from a tiny input.
+      /**
+       * An unchecked huge char code would make the constructor allocate
+       * a proportionally huge code-unit table from a tiny input.
+       */
       const bytes = Gaddag.fromArray(WORDS).serialize();
       new Int32Array(bytes.buffer, HEADER_BYTES, 1)[0] = 100_000_000;
       expect(() => Gaddag.deserialize(bytes)).toThrow('Invalid Gaddag data');
@@ -379,8 +387,10 @@ describe('Gaddag', () => {
     });
 
     it('rejects a root ref that does not point at the first arc of a state', () => {
-      // The constructor's root-arc scan starting mid-state would silently drop
-      // the root arcs in front of it.
+      /**
+       * The constructor's root-arc scan starting mid-state would silently drop
+       * the root arcs in front of it.
+       */
       const gaddag = Gaddag.fromArray(WORDS);
       const bytes = gaddag.serialize();
       new Int32Array(bytes.buffer, 0, 4)[3] = ((gaddag.rootRef >>> 1) + 1) << 1;
