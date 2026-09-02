@@ -100,6 +100,28 @@ describe('Gaddag.fromArray', () => {
     expect(() => Gaddag.fromArray(words)).toThrow('Gaddag supports up to 63 distinct UTF-16 code units, got 64');
   });
 
+  it('supports a state with the maximum of 64 arcs: the separator plus every letter', () => {
+    const letters = Array.from({ length: 63 }, (_, index) => String.fromCharCode(97 + index));
+    const [x] = letters;
+    // 'x' + c gives the state behind 'x' a separator arc; c + 'x' gives it an arc per letter.
+    const words = letters.flatMap((letter) => [`${x}${letter}`, `${letter}${x}`]);
+    const gaddag = Gaddag.fromArray(words);
+    let arcIndex = gaddag.getArc(gaddag.rootRef, gaddag.getLetter(x.charCodeAt(0))) >>> 1;
+    let arcsCount = 1;
+
+    while (gaddag.arcLabels[arcIndex] < LAST_ARC_FLAG) {
+      ++arcIndex;
+      ++arcsCount;
+    }
+
+    expect(arcsCount).toBe(64);
+    expect(() => gaddag.validate()).not.toThrow();
+
+    for (const word of words) {
+      expect(gaddag.has(word)).toBe(true);
+    }
+  });
+
   it('supports an alphabet of exactly 63 distinct characters', () => {
     const words = Array.from({ length: 63 }, (_, index) => String.fromCharCode(97 + index));
     const gaddag = Gaddag.fromArray(words);
