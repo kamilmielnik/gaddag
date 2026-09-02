@@ -1,5 +1,27 @@
 # Changelog
 
+## [3.0.0] - Unreleased
+
+### Changed
+
+- **Breaking:** the `Gaddag` constructor derives its letter table from `charCodes` and no longer accepts one — a caller-provided table could disagree with the alphabet without `validate` noticing.
+- **Breaking:** `Alphabet.letterByCharCode` is a `Uint8Array` instead of an `Int32Array`, and its length ends at the alphabet's largest code unit — a read past it yields `undefined`, so compare against the length first.
+- **Breaking:** `encodeWords` throws when the words differ from the scanned list in letters or in size, instead of encoding garbage.
+- **Breaking:** the Bun engine requirement is `>=1.4`.
+- `Gaddag.fromArray`, `scanWords`, and `encodeWords` accept `readonly string[]`.
+- `Gaddag.deserialize` errors name the failed check — "Invalid Gaddag data: unexpected magic number" instead of a bare "Invalid Gaddag data".
+- The alphabet limit error counts UTF-16 code units, not characters.
+
+### Added
+
+- `Gaddag.validate`, a one-pass proof that the arcs form a well-formed automaton: every letter is in the alphabet, the arcs of each state ascend by letter, every arc leads somewhere, the root has no separator arc, and every target points at the start of an earlier state, which rules out cycles and bounds the depth of any traversal.
+- README: benchmark tables next to the charts, with the date, runtime, and CPU behind the numbers; `validate` and unaligned `Gaddag.deserialize` are benchmarked alongside `serialize`.
+- `SECURITY.md`.
+
+### Fixed
+
+- The README's word-collecting example skips a separator arc met after the separator, which validated foreign bytes may hold.
+
 ## [2.0.0] - 2026-08-06
 
 ### Changed
@@ -38,5 +60,6 @@
 
 Initial release.
 
+[3.0.0]: https://github.com/kamilmielnik/gaddag/compare/2.0.0...HEAD
 [2.0.0]: https://github.com/kamilmielnik/gaddag/compare/1.0.0...2.0.0
 [1.0.0]: https://github.com/kamilmielnik/gaddag/releases/tag/1.0.0
