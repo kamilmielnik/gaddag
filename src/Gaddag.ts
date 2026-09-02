@@ -164,8 +164,11 @@ export class Gaddag {
    * and every target points at the start of a state that lies before the state
    * owning the arc. That last rule rules out cycles and bounds the depth, so
    * every traversal terminates. The alphabet and the root ref are checked the
-   * way {@link Gaddag.deserialize} checks them. Throws an `Error` naming the
-   * first violation. Costs a few milliseconds per million arcs.
+   * way {@link Gaddag.deserialize} checks them, and the root may not have a
+   * separator arc. It does not prove that a path crosses the separator at most
+   * once — that is a property of the word list, not of the automaton. Throws
+   * an `Error` naming the first violation. Costs a few milliseconds per
+   * million arcs.
    */
   public validate(): void {
     const { arcLabels, arcTargets, charCodes, rootRef } = this;
@@ -183,6 +186,7 @@ export class Gaddag {
     assertAlphabet(charCodes);
     assertStateBoundaries(arcLabels, rootRef);
     assertArcs(arcLabels, arcTargets, charCodes.length);
+    assertRootHasNoSeparatorArc(arcLabels, rootRef);
   }
 
   /** Returns whether `word` is in the dictionary. The empty string never is. */
@@ -411,5 +415,17 @@ function assertArcs(arcLabels: Uint8Array, arcTargets: Int32Array, letterCount: 
     } else {
       previousLetter = letter;
     }
+  }
+}
+
+/**
+ * A separator right after the root would spell an empty prefix. Arcs ascend by
+ * letter and the separator is letter 0, so it can only be the root's first arc.
+ */
+function assertRootHasNoSeparatorArc(arcLabels: Uint8Array, rootRef: number): void {
+  const rootArcIndex = rootRef >>> 1;
+
+  if (rootArcIndex !== 0 && (arcLabels[rootArcIndex] & LETTER_MASK) === SEPARATOR) {
+    throw invalidData('root state has a separator arc');
   }
 }

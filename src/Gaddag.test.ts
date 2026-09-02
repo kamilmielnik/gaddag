@@ -364,6 +364,16 @@ describe('Gaddag', () => {
       expect(() => dead.validate()).toThrow('leads nowhere');
     });
 
+    it('rejects a separator arc on the root state', () => {
+      const gaddag = Gaddag.fromArray(WORDS);
+      const rootArc = gaddag.rootRef >>> 1;
+      const emptyPrefix = corrupt(gaddag, (arcLabels) => {
+        arcLabels[rootArc] = (arcLabels[rootArc] & LAST_ARC_FLAG) | SEPARATOR;
+      });
+
+      expect(() => emptyPrefix.validate()).toThrow('root state has a separator arc');
+    });
+
     it('rejects the root ref and alphabet faults that deserialize rejects', () => {
       const gaddag = Gaddag.fromArray(WORDS);
       const oddRoot = new Gaddag({ ...gaddag, rootRef: gaddag.rootRef | 1 }, gaddag.charCodes);

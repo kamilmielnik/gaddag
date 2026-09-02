@@ -137,7 +137,7 @@ Empty words are skipped; a non-string entry throws a `TypeError`. Duplicated wor
 - `has`, `hasPrefix`, and `getArc` terminate, but may answer incorrectly
 - a traversal you write on top — like [Find all words with a given prefix](#find-all-words-with-a-given-prefix) — can loop forever on a cycle, or overflow the stack on a chain of states deeper than any real word
 
-[`validate`](https://github.com/kamilmielnik/gaddag/blob/master/docs/classes/Gaddag.md#validate) closes that gap in one pass over the arcs — a few milliseconds per million arcs: it proves that every letter is in the alphabet, that the arcs of each state ascend by letter, that every arc leads somewhere, and that every target points at the start of a state which lies before the state owning the arc, which rules out cycles and bounds the depth. A validated automaton answers consistently and every traversal of it terminates; whether it holds the words you expect is still up to whoever wrote the bytes. Call it once on data you did not serialize yourself, or build from text with `Gaddag.fromArray` instead.
+[`validate`](https://github.com/kamilmielnik/gaddag/blob/master/docs/classes/Gaddag.md#validate) closes that gap in one pass over the arcs — a few milliseconds per million arcs: it proves that every letter is in the alphabet, that the arcs of each state ascend by letter, that every arc leads somewhere, that the root has no separator arc, and that every target points at the start of a state which lies before the state owning the arc, which rules out cycles and bounds the depth. It does not prove that a path crosses the separator at most once — that is a property of the word list, not of the automaton — so a traversal of foreign bytes should skip a separator arc it meets after the separator, as the example below does. A validated automaton answers consistently and every traversal of it terminates; whether it holds the words you expect is still up to whoever wrote the bytes. Call it once on data you did not serialize yourself, or build from text with `Gaddag.fromArray` instead.
 
 ## Examples
 
@@ -224,14 +224,18 @@ function collectWords(gaddag: Gaddag, ref: number, word: string, words: string[]
   for (;;) {
     const label = gaddag.arcLabels[index];
     const letter = label & LETTER_MASK;
-    const target = gaddag.arcTargets[index];
-    const next = word + String.fromCharCode(gaddag.charCodes[letter - 1]);
 
-    if ((target & 1) === 1) {
-      words.push(next);
+    // A word list never puts a second separator on a path; validated foreign bytes might.
+    if (letter !== SEPARATOR) {
+      const target = gaddag.arcTargets[index];
+      const next = word + String.fromCharCode(gaddag.charCodes[letter - 1]);
+
+      if ((target & 1) === 1) {
+        words.push(next);
+      }
+
+      collectWords(gaddag, target, next, words);
     }
-
-    collectWords(gaddag, target, next, words);
 
     if (label & LAST_ARC_FLAG) {
       return;

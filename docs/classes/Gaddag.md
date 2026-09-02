@@ -195,8 +195,11 @@ every letter is in the alphabet, the arcs of each state ascend by letter,
 and every target points at the start of a state that lies before the state
 owning the arc. That last rule rules out cycles and bounds the depth, so
 every traversal terminates. The alphabet and the root ref are checked the
-way [Gaddag.deserialize](#deserialize) checks them. Throws an `Error` naming the
-first violation. Costs a few milliseconds per million arcs.
+way [Gaddag.deserialize](#deserialize) checks them, and the root may not have a
+separator arc. It does not prove that a path crosses the separator at most
+once — that is a property of the word list, not of the automaton. Throws
+an `Error` naming the first violation. Costs a few milliseconds per
+million arcs.
 
 #### Returns
 
