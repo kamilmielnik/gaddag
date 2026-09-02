@@ -250,7 +250,7 @@ radix sort, and fed to an incremental minimal-automaton builder.
 
 ##### words
 
-`string`[]
+readonly `string`[]
 
 #### Returns
 

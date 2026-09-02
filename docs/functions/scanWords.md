@@ -10,7 +10,7 @@ guarding every pipeline built on the scan.
 
 ### words
 
-`string`[]
+readonly `string`[]
 
 ## Returns
 

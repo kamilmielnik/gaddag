@@ -10,7 +10,7 @@ they differ in letters or in size.
 
 ### words
 
-`string`[]
+readonly `string`[]
 
 ### scan
 

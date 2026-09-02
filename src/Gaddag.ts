@@ -43,7 +43,7 @@ export class Gaddag {
    * compact `(wordIndex << 6) | splitIndex` integer, ordered with an in-place MSD
    * radix sort, and fed to an incremental minimal-automaton builder.
    */
-  public static fromArray(words: string[]): Gaddag {
+  public static fromArray(words: readonly string[]): Gaddag {
     const scan = scanWords(words);
     const { wordBytes, wordOffsets } = encodeWords(words, scan);
     const items = generateItems(wordOffsets);

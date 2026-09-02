@@ -14,7 +14,7 @@ import { type EncodedWords, type GaddagArcs, type WordListScan } from './types.t
  * the kept words and letters. Enforces {@link MAX_LETTERS} and {@link MAX_WORDS},
  * guarding every pipeline built on the scan.
  */
-export function scanWords(words: string[]): WordListScan {
+export function scanWords(words: readonly string[]): WordListScan {
   /**
    * One flag per code unit — far cheaper than a Set at dictionary scale, and
    * scanning the flags in order yields the sorted alphabet for free.
@@ -90,7 +90,7 @@ export function mapCharCodesToLetters(charCodes: Int32Array): Uint8Array {
  * came from — {@link scanWords} is what validates the entries — and throws when
  * they differ in letters or in size.
  */
-export function encodeWords(words: string[], scan: WordListScan): EncodedWords {
+export function encodeWords(words: readonly string[], scan: WordListScan): EncodedWords {
   const { itemsCount, letterByCharCode, wordsCount } = scan;
   const wordBytes = new Uint8Array(itemsCount);
   const wordOffsets = new Int32Array(wordsCount + 1);
