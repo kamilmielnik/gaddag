@@ -116,7 +116,11 @@ export class Gaddag {
    * return incorrect results. `letterByCharCode` is the `Alphabet` table of
    * `charCodes`; it is derived from them when omitted.
    */
-  constructor(arcs: GaddagArcs, charCodes: Int32Array, letterByCharCode = mapCharCodesToLetters(charCodes)) {
+  constructor(
+    arcs: GaddagArcs,
+    charCodes: Int32Array,
+    letterByCharCode: Uint8Array = mapCharCodesToLetters(charCodes),
+  ) {
     const { arcLabels, arcTargets, rootRef } = arcs;
     this.arcLabels = arcLabels;
     this.arcTargets = arcTargets;

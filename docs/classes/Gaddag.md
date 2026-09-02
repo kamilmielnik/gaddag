@@ -40,7 +40,7 @@ return incorrect results. `letterByCharCode` is the `Alphabet` table of
 
 ##### letterByCharCode?
 
-`Uint8Array`\<`ArrayBufferLike`\> = `...`
+`Uint8Array` = `...`
 
 #### Returns
 
