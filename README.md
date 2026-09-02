@@ -22,7 +22,7 @@
 
 - [Highly performant](#performance)
 - No dependencies
-- Backed by flat typed arrays — compact in memory, [microseconds to deserialize](#performance)
+- Backed by flat typed arrays — compact in memory, [zero-copy to deserialize](#performance) when the input is 4-byte aligned
 - Built for [Scrabble Solver](https://github.com/kamilmielnik/scrabble-solver)
 - CJS & ESM compatible
 
