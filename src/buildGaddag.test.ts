@@ -42,6 +42,18 @@ describe('Gaddag.fromArray', () => {
     expect(gaddag.has('zebr')).toBe(false);
   });
 
+  it('collapses many copies of one word into the automaton of a single copy', () => {
+    // More copies than the radix sort hands to insertion sort, so a whole bucket
+    // of identical sequences reaches the bucketing pass.
+    const copies = [...Array.from({ length: 100 }, () => 'abc'), 'abd', ...Array.from({ length: 50 }, () => 'x')];
+    const fromCopies = Gaddag.fromArray(copies);
+    const fromSingles = Gaddag.fromArray(['abc', 'abd', 'x']);
+
+    expect([...fromCopies.arcLabels]).toEqual([...fromSingles.arcLabels]);
+    expect([...fromCopies.arcTargets]).toEqual([...fromSingles.arcTargets]);
+    expect(fromCopies.rootRef).toBe(fromSingles.rootRef);
+  });
+
   it('handles an empty word list', () => {
     const gaddag = Gaddag.fromArray([]);
 
