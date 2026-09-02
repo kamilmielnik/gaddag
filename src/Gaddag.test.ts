@@ -402,7 +402,24 @@ describe('Gaddag', () => {
       expect(deserialized.has('zzz')).toBe(false);
     });
 
-    it('deserializes from unaligned byte offsets', () => {
+    it('serializes into freshly allocated, 4-byte aligned bytes', () => {
+      const gaddag = Gaddag.fromArray(WORDS);
+      const bytes = gaddag.serialize();
+
+      expect(bytes.byteOffset % 4).toBe(0);
+      expect(bytes.buffer).not.toBe(gaddag.arcTargets.buffer);
+    });
+
+    it('shares the buffer of 4-byte aligned input instead of copying it', () => {
+      const bytes = Gaddag.fromArray(WORDS).serialize();
+      const deserialized = Gaddag.deserialize(bytes);
+
+      expect(deserialized.arcTargets.buffer).toBe(bytes.buffer);
+      expect(deserialized.arcLabels.buffer).toBe(bytes.buffer);
+      expect(deserialized.charCodes.buffer).toBe(bytes.buffer);
+    });
+
+    it('deserializes from unaligned byte offsets by copying', () => {
       const gaddag = Gaddag.fromArray(WORDS);
       const bytes = gaddag.serialize();
       const shifted = new Uint8Array(bytes.length + 1);
@@ -410,9 +427,26 @@ describe('Gaddag', () => {
       const unaligned = new Uint8Array(shifted.buffer, 1, bytes.length);
       const deserialized = Gaddag.deserialize(unaligned);
 
+      expect(deserialized.arcTargets.buffer).not.toBe(shifted.buffer);
+
       for (const word of WORDS) {
         expect(deserialized.has(word)).toBe(true);
       }
+    });
+
+    it('deserializes from a Node Buffer, aligned or not', () => {
+      const bytes = Gaddag.fromArray(WORDS).serialize();
+      const padded = new Uint8Array(bytes.length + 8);
+      padded.set(bytes, 4);
+      const alignedView = Buffer.from(padded.buffer, 4, bytes.length);
+      const shifted = new Uint8Array(bytes.length + 8);
+      shifted.set(bytes, 5);
+      const unalignedView = Buffer.from(shifted.buffer, 5, bytes.length);
+
+      expect(Gaddag.deserialize(Buffer.from(bytes)).has('flames')).toBe(true);
+      expect(Gaddag.deserialize(alignedView).arcTargets.buffer).toBe(padded.buffer);
+      expect(Gaddag.deserialize(unalignedView).arcTargets.buffer).not.toBe(shifted.buffer);
+      expect(Gaddag.deserialize(unalignedView).has('flames')).toBe(true);
     });
 
     it('rejects data with an invalid magic number', () => {
