@@ -1,9 +1,3 @@
-[**@kamilmielnik/gaddag**](../README.md)
-
-***
-
-[@kamilmielnik/gaddag](../README.md) / scanWords
-
 # Function: scanWords()
 
 > **scanWords**(`words`): [`WordListScan`](../interfaces/WordListScan.md)

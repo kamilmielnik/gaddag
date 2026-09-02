@@ -1,9 +1,3 @@
-[**@kamilmielnik/gaddag**](../README.md)
-
-***
-
-[@kamilmielnik/gaddag](../README.md) / LETTER\_MASK
-
 # Variable: LETTER\_MASK
 
 > `const` **LETTER\_MASK**: `63` = `63`

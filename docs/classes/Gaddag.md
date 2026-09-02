@@ -1,9 +1,3 @@
-[**@kamilmielnik/gaddag**](../README.md)
-
-***
-
-[@kamilmielnik/gaddag](../README.md) / Gaddag
-
 # Class: Gaddag
 
 A GADDAG (Gordon, 1994) stored as flat typed arrays for speed and compact serialization.

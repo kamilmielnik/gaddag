@@ -1,9 +1,3 @@
-[**@kamilmielnik/gaddag**](../README.md)
-
-***
-
-[@kamilmielnik/gaddag](../README.md) / Alphabet
-
 # Interface: Alphabet
 
 Letters of a word list, indexed 1..63 in ascending code-unit order (0 is the separator).

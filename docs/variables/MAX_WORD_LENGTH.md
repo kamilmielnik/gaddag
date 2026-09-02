@@ -1,9 +1,3 @@
-[**@kamilmielnik/gaddag**](../README.md)
-
-***
-
-[@kamilmielnik/gaddag](../README.md) / MAX\_WORD\_LENGTH
-
 # Variable: MAX\_WORD\_LENGTH
 
 > `const` **MAX\_WORD\_LENGTH**: `63` = `63`

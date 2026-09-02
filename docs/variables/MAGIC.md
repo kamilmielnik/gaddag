@@ -1,9 +1,3 @@
-[**@kamilmielnik/gaddag**](../README.md)
-
-***
-
-[@kamilmielnik/gaddag](../README.md) / MAGIC
-
 # Variable: MAGIC
 
 > `const` **MAGIC**: `826754119` = `0x31474447`

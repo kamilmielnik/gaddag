@@ -1,9 +1,3 @@
-[**@kamilmielnik/gaddag**](../README.md)
-
-***
-
-[@kamilmielnik/gaddag](../README.md) / MAX\_LETTERS
-
 # Variable: MAX\_LETTERS
 
 > `const` **MAX\_LETTERS**: `63` = `63`

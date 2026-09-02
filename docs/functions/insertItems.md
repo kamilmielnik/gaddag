@@ -1,9 +1,3 @@
-[**@kamilmielnik/gaddag**](../README.md)
-
-***
-
-[@kamilmielnik/gaddag](../README.md) / insertItems
-
 # Function: insertItems()
 
 > **insertItems**(`items`, `wordBytes`, `wordOffsets`): [`GaddagArcs`](../interfaces/GaddagArcs.md)

@@ -1,9 +1,3 @@
-[**@kamilmielnik/gaddag**](../README.md)
-
-***
-
-[@kamilmielnik/gaddag](../README.md) / HEADER\_BYTES
-
 # Variable: HEADER\_BYTES
 
 > `const` **HEADER\_BYTES**: `16` = `16`

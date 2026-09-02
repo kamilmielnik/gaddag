@@ -1,5 +1,7 @@
 {
   "disableSources": true,
+  "hideBreadcrumbs": true,
+  "hidePageHeader": true,
   "entryPoints": ["./src"],
   "out": "docs",
   "plugin": ["typedoc-plugin-markdown"],

@@ -1,9 +1,3 @@
-[**@kamilmielnik/gaddag**](../README.md)
-
-***
-
-[@kamilmielnik/gaddag](../README.md) / generateItems
-
 # Function: generateItems()
 
 > **generateItems**(`wordOffsets`): `Int32Array`

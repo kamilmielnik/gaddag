@@ -1,9 +1,3 @@
-[**@kamilmielnik/gaddag**](../README.md)
-
-***
-
-[@kamilmielnik/gaddag](../README.md) / encodeWords
-
 # Function: encodeWords()
 
 > **encodeWords**(`words`, `scan`): [`EncodedWords`](../interfaces/EncodedWords.md)

@@ -1,7 +1,3 @@
-**@kamilmielnik/gaddag**
-
-***
-
 # @kamilmielnik/gaddag
 
 ## Classes
