@@ -29,7 +29,7 @@ export function scanWords(words: string[]): WordListScan {
       throw new TypeError('Gaddag supports string words only');
     }
 
-    if (word.length === 0 || word.length > MAX_WORD_LENGTH) {
+    if (!isKeptWord(word)) {
       continue;
     }
 
@@ -85,7 +85,7 @@ export function encodeWords(words: string[], scan: WordListScan): EncodedWords {
   let wordIndex = 0;
 
   for (const word of words) {
-    if (word.length === 0 || word.length > MAX_WORD_LENGTH) {
+    if (!isKeptWord(word)) {
       continue;
     }
 
@@ -101,6 +101,11 @@ export function encodeWords(words: string[], scan: WordListScan): EncodedWords {
 
   wordOffsets[wordsCount] = offset;
   return { wordBytes, wordOffsets };
+}
+
+/** Empty words carry no sequence; overlong ones cannot be addressed by a 6-bit split position. */
+function isKeptWord(word: string): boolean {
+  return word.length > 0 && word.length <= MAX_WORD_LENGTH;
 }
 
 /** Enumerates every `(word, split)` pair as a packed integer — one per GADDAG sequence. */
