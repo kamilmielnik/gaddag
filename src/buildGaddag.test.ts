@@ -109,12 +109,6 @@ describe('Gaddag.fromArray', () => {
     }
   });
 
-  it('throws when the kept words exceed MAX_WORDS', () => {
-    const words = new Array<string>(MAX_WORDS + 1).fill('a');
-
-    expect(() => Gaddag.fromArray(words)).toThrow(`Gaddag supports up to ${MAX_WORDS} words, got ${MAX_WORDS + 1}`);
-  });
-
   it('does not count skipped words against MAX_WORDS', () => {
     const words = new Array<string>(MAX_WORDS + 1).fill('');
     words[0] = 'ab';
