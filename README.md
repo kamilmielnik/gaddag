@@ -6,7 +6,7 @@
 <img src="https://img.shields.io/badge/bun-%3E=1.3-brightgreen.svg" alt="Bun" />
 <img src="https://img.shields.io/node/v/@kamilmielnik/gaddag" alt="Node version" />
 
-<img src="https://github.com/kamilmielnik/gaddag/workflows/Test/badge.svg" alt="Test" />
+<img src="https://github.com/kamilmielnik/gaddag/actions/workflows/test.yml/badge.svg" alt="Test" />
 <img src="https://img.shields.io/badge/coverage-100%25-brightgreen.svg" alt="Coverage" />
 <img src="https://github.com/kamilmielnik/gaddag/actions/workflows/oxfmt.yml/badge.svg" alt="Format" />
 </div>
