@@ -8,11 +8,11 @@ export const MAX_LETTERS = 63;
 export const MAX_WORD_LENGTH = 63;
 
 /**
- * Maximum number of words: a word index and a split position pack into one
- * 31-bit integer. `scanWords` — and so `Gaddag.fromArray` — throws a
+ * Maximum number of words (2^25): a word index and a split position pack into
+ * one 31-bit integer. `scanWords` — and so `Gaddag.fromArray` — throws a
  * `RangeError` when more words remain after skipping empty and overlong ones.
  */
-export const MAX_WORDS = 1 << 25;
+export const MAX_WORDS = 33_554_432;
 
 /** Arc label bit marking the last arc of a state. */
 export const LAST_ARC_FLAG = 128;
