@@ -28,7 +28,7 @@ export class Gaddag {
   public readonly charCodes: Int32Array;
 
   /** Letter index of each code unit, 0 when the code unit is not in the alphabet. */
-  private readonly letterByCharCode: Int32Array;
+  private readonly letterByCharCode: Uint8Array;
 
   /** Targets of the root's arcs, indexed by letter — the root is the hottest state. */
   private readonly rootArcs: Int32Array;
@@ -164,7 +164,7 @@ export class Gaddag {
       }
     }
 
-    this.letterByCharCode = new Int32Array(maxCharCode + 1);
+    this.letterByCharCode = new Uint8Array(maxCharCode + 1);
 
     for (let index = 0; index < charCodes.length; ++index) {
       this.letterByCharCode[charCodes[index]] = index + 1;

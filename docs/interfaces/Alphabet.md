@@ -26,7 +26,7 @@ Defined in: [types.ts:3](https://github.com/kamilmielnik/gaddag/blob/master/src/
 
 ### letterByCharCode
 
-> **letterByCharCode**: `Int32Array`
+> **letterByCharCode**: `Uint8Array`
 
 Defined in: [types.ts:10](https://github.com/kamilmielnik/gaddag/blob/master/src/types.ts#L10)
 

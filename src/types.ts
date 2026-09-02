@@ -7,7 +7,7 @@ export interface Alphabet {
    * than 0 — compare against the length first. 0 is also the separator's letter index, so do not
    * pass misses on to `Gaddag.getArc` — `Gaddag.getLetter` answers -1 for them instead.
    */
-  letterByCharCode: Int32Array;
+  letterByCharCode: Uint8Array;
 }
 
 /** {@link Alphabet} of a word list plus the sizes of the words a Gaddag keeps (non-empty, within length limits). */

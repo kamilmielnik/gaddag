@@ -64,7 +64,7 @@ export function scanWords(words: string[]): WordListScan {
   }
 
   const maxCharCode = lettersCount === 0 ? -1 : charCodes[lettersCount - 1];
-  const letterByCharCode = new Int32Array(maxCharCode + 1);
+  const letterByCharCode = new Uint8Array(maxCharCode + 1);
 
   for (let index = 0; index < charCodes.length; ++index) {
     letterByCharCode[charCodes[index]] = index + 1;
