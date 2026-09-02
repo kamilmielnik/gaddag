@@ -35,6 +35,9 @@ export class Gaddag {
 
   /**
    * Builds a minimal GADDAG from a word list (any order, duplicates allowed).
+   * Empty words and words longer than {@link MAX_WORD_LENGTH} are skipped.
+   * Throws a `TypeError` on a non-string entry and a `RangeError` past
+   * {@link MAX_LETTERS} distinct UTF-16 code units or {@link MAX_WORDS} kept words.
    *
    * Every GADDAG sequence (`reverse(prefix) [+ ◇ + suffix]`) is enumerated as a
    * compact `(wordIndex << 6) | splitIndex` integer, ordered with an in-place MSD

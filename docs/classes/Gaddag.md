@@ -238,6 +238,9 @@ you did not serialize yourself.
 > `static` **fromArray**(`words`): `Gaddag`
 
 Builds a minimal GADDAG from a word list (any order, duplicates allowed).
+Empty words and words longer than [MAX\_WORD\_LENGTH](../variables/MAX_WORD_LENGTH.md) are skipped.
+Throws a `TypeError` on a non-string entry and a `RangeError` past
+[MAX\_LETTERS](../variables/MAX_LETTERS.md) distinct UTF-16 code units or [MAX\_WORDS](../variables/MAX_WORDS.md) kept words.
 
 Every GADDAG sequence (`reverse(prefix) [+ ◇ + suffix]`) is enumerated as a
 compact `(wordIndex << 6) | splitIndex` integer, ordered with an in-place MSD
