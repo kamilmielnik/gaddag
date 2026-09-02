@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 
 import { encodeWords, generateItems, insertItems, scanWords, sortItems } from './buildGaddag.ts';
-import { LAST_ARC_FLAG, MAX_WORD_LENGTH, MAX_WORDS } from './constants.ts';
+import { LAST_ARC_FLAG, LETTER_MASK, MAX_WORD_LENGTH, MAX_WORDS } from './constants.ts';
 import { Gaddag } from './Gaddag.ts';
 
 const MULBERRY32_INCREMENT = 0x6d2b79f5;
@@ -135,11 +135,15 @@ describe('Gaddag.fromArray', () => {
     expect(((MAX_WORDS - 1) << 6) | MAX_WORD_LENGTH).toBe(2 ** 31 - 1);
   });
 
-  it('shares common prefixes and suffixes (minimality)', () => {
-    // A raw trie of all GADDAG sequences of these words would need hundreds of arcs.
-    const gaddag = Gaddag.fromArray(['talking', 'walking', 'talked', 'walked']);
+  it('builds a minimal automaton: no two states are identical and every state is reachable', () => {
+    const randomWord = createRandomWordGenerator(3, 'abcdef', 7);
+    const words = ['talking', 'walking', 'talked', 'walked', ...Array.from({ length: 300 }, randomWord)];
+    const gaddag = Gaddag.fromArray(words);
+    const states = collectStates(gaddag);
 
-    expect(gaddag.arcsCount).toBeLessThan(70);
+    expect(states.size).toBeGreaterThan(100);
+    expect(new Set(states.values()).size).toBe(states.size);
+    expect(collectReachableStates(gaddag).size).toBe(states.size);
   });
 
   it('builds identical automatons regardless of input order', () => {
@@ -226,6 +230,55 @@ describe('Gaddag.fromArray', () => {
     }
   });
 });
+
+/** Maps each state's first arc index to a signature of its arcs, so identical states collide. */
+function collectStates(gaddag: Gaddag): Map<number, string> {
+  const states = new Map<number, string>();
+
+  for (let index = 1; index <= gaddag.arcsCount;) {
+    const firstArc = index;
+    const arcs: string[] = [];
+
+    for (;;) {
+      const label = gaddag.arcLabels[index];
+      arcs.push(`${label & LETTER_MASK}>${gaddag.arcTargets[index]}`);
+      ++index;
+
+      if (label >= LAST_ARC_FLAG) {
+        break;
+      }
+    }
+
+    states.set(firstArc, arcs.join(','));
+  }
+
+  return states;
+}
+
+function collectReachableStates(gaddag: Gaddag): Set<number> {
+  const reached = new Set<number>();
+  const pending = [gaddag.rootRef >>> 1];
+
+  while (pending.length > 0) {
+    const firstArc = pending.pop() as number;
+
+    if (firstArc === 0 || reached.has(firstArc)) {
+      continue;
+    }
+
+    reached.add(firstArc);
+
+    for (let index = firstArc; ; ++index) {
+      pending.push(gaddag.arcTargets[index] >>> 1);
+
+      if (gaddag.arcLabels[index] >= LAST_ARC_FLAG) {
+        break;
+      }
+    }
+  }
+
+  return reached;
+}
 
 describe('scanWords', () => {
   it('collects the alphabet in ascending code-unit order with its letter mapping', () => {
