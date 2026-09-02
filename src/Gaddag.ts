@@ -46,7 +46,7 @@ export class Gaddag {
     const items = generateItems(wordOffsets);
     sortItems(items, wordBytes, wordOffsets);
     const arcs = insertItems(items, wordBytes, wordOffsets);
-    return new Gaddag(arcs, scan.charCodes, scan.letterByCharCode);
+    return new Gaddag(arcs, scan.charCodes);
   }
 
   /**
@@ -113,20 +113,15 @@ export class Gaddag {
   /**
    * Wraps pre-built arcs without any validation — prefer {@link Gaddag.fromArray}
    * and {@link Gaddag.deserialize}. Lookups on invalid arcs terminate but
-   * return incorrect results. `letterByCharCode` is the `Alphabet` table of
-   * `charCodes`; it is derived from them when omitted.
+   * return incorrect results.
    */
-  constructor(
-    arcs: GaddagArcs,
-    charCodes: Int32Array,
-    letterByCharCode: Uint8Array = mapCharCodesToLetters(charCodes),
-  ) {
+  constructor(arcs: GaddagArcs, charCodes: Int32Array) {
     const { arcLabels, arcTargets, rootRef } = arcs;
     this.arcLabels = arcLabels;
     this.arcTargets = arcTargets;
     this.rootRef = rootRef;
     this.charCodes = charCodes;
-    this.letterByCharCode = letterByCharCode;
+    this.letterByCharCode = mapCharCodesToLetters(charCodes);
     this.rootArcs = new Int32Array(MAX_LETTERS + 1);
     let arcIndex = rootRef >>> 1;
 

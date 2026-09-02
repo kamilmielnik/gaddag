@@ -15,12 +15,11 @@ Arcs of a state are contiguous and sorted by letter; the last one is marked with
 
 ### Constructor
 
-> **new Gaddag**(`arcs`, `charCodes`, `letterByCharCode?`): `Gaddag`
+> **new Gaddag**(`arcs`, `charCodes`): `Gaddag`
 
 Wraps pre-built arcs without any validation — prefer [Gaddag.fromArray](#fromarray)
 and [Gaddag.deserialize](#deserialize). Lookups on invalid arcs terminate but
-return incorrect results. `letterByCharCode` is the `Alphabet` table of
-`charCodes`; it is derived from them when omitted.
+return incorrect results.
 
 #### Parameters
 
@@ -31,10 +30,6 @@ return incorrect results. `letterByCharCode` is the `Alphabet` table of
 ##### charCodes
 
 `Int32Array`
-
-##### letterByCharCode?
-
-`Uint8Array` = `...`
 
 #### Returns
 
