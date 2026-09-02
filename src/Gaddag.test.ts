@@ -288,16 +288,16 @@ describe('Gaddag', () => {
     });
 
     it('rejects data with an invalid magic number', () => {
-      expect(() => Gaddag.deserialize(new Uint8Array(16))).toThrow('Invalid Gaddag data');
+      expect(() => Gaddag.deserialize(new Uint8Array(16))).toThrow('magic number');
     });
 
     it('rejects truncated data', () => {
-      expect(() => Gaddag.deserialize(new Uint8Array(3))).toThrow('Invalid Gaddag data');
+      expect(() => Gaddag.deserialize(new Uint8Array(3))).toThrow('truncated header');
     });
 
     it('rejects data truncated mid-header', () => {
       const bytes = Gaddag.fromArray(WORDS).serialize();
-      expect(() => Gaddag.deserialize(bytes.subarray(0, 10))).toThrow('Invalid Gaddag data');
+      expect(() => Gaddag.deserialize(bytes.subarray(0, 10))).toThrow('truncated header');
     });
 
     it('rejects data truncated to a prefix of a valid serialization', () => {
@@ -306,32 +306,32 @@ describe('Gaddag', () => {
        * A subarray shares the full underlying buffer — deserialization must
        * respect the view's byteLength, not the buffer's.
        */
-      expect(() => Gaddag.deserialize(bytes.subarray(0, bytes.length - 5))).toThrow('Invalid Gaddag data');
+      expect(() => Gaddag.deserialize(bytes.subarray(0, bytes.length - 5))).toThrow('bytes, got');
     });
 
     it('rejects data with an implausible arc count', () => {
       const bytes = Gaddag.fromArray(WORDS).serialize();
       new Int32Array(bytes.buffer, 0, 4)[2] = 1 << 30;
-      expect(() => Gaddag.deserialize(bytes)).toThrow('Invalid Gaddag data');
+      expect(() => Gaddag.deserialize(bytes)).toThrow('bytes, got');
     });
 
     it('rejects data with a zero arc count', () => {
       const bytes = Gaddag.fromArray(WORDS).serialize();
       new Int32Array(bytes.buffer, 0, 4)[2] = 0;
-      expect(() => Gaddag.deserialize(bytes)).toThrow('Invalid Gaddag data');
+      expect(() => Gaddag.deserialize(bytes)).toThrow('arc count 0 below 1');
     });
 
     it('rejects data with a negative arc count', () => {
       const bytes = Gaddag.fromArray(WORDS).serialize();
       new Int32Array(bytes.buffer, 0, 4)[2] = -1;
-      expect(() => Gaddag.deserialize(bytes)).toThrow('Invalid Gaddag data');
+      expect(() => Gaddag.deserialize(bytes)).toThrow('arc count -1 below 1');
     });
 
     it('rejects data with an out-of-range root ref', () => {
       const bytes = Gaddag.fromArray(WORDS).serialize();
       const header = new Int32Array(bytes.buffer, 0, 4);
       header[3] = header[2] * 2;
-      expect(() => Gaddag.deserialize(bytes)).toThrow('Invalid Gaddag data');
+      expect(() => Gaddag.deserialize(bytes)).toThrow('points past the');
     });
 
     it('rejects data whose root ref has the word-end bit set', () => {
@@ -341,13 +341,13 @@ describe('Gaddag', () => {
        */
       const bytes = Gaddag.fromArray(WORDS).serialize();
       new Int32Array(bytes.buffer, 0, 4)[3] |= 1;
-      expect(() => Gaddag.deserialize(bytes)).toThrow('Invalid Gaddag data');
+      expect(() => Gaddag.deserialize(bytes)).toThrow('marks a word end');
     });
 
     it('rejects data with a negative root ref', () => {
       const bytes = Gaddag.fromArray(WORDS).serialize();
       new Int32Array(bytes.buffer, 0, 4)[3] = -1;
-      expect(() => Gaddag.deserialize(bytes)).toThrow('Invalid Gaddag data');
+      expect(() => Gaddag.deserialize(bytes)).toThrow('negative root ref');
     });
 
     it('rejects data with a char code above the UTF-16 range', () => {
@@ -357,33 +357,33 @@ describe('Gaddag', () => {
        */
       const bytes = Gaddag.fromArray(WORDS).serialize();
       new Int32Array(bytes.buffer, HEADER_BYTES, 1)[0] = 100_000_000;
-      expect(() => Gaddag.deserialize(bytes)).toThrow('Invalid Gaddag data');
+      expect(() => Gaddag.deserialize(bytes)).toThrow('not an ascending UTF-16 code unit');
     });
 
     it('rejects data with a negative char code', () => {
       const bytes = Gaddag.fromArray(WORDS).serialize();
       new Int32Array(bytes.buffer, HEADER_BYTES, 1)[0] = -1;
-      expect(() => Gaddag.deserialize(bytes)).toThrow('Invalid Gaddag data');
+      expect(() => Gaddag.deserialize(bytes)).toThrow('not an ascending UTF-16 code unit');
     });
 
     it('rejects data with non-ascending char codes', () => {
       const bytes = Gaddag.fromArray(WORDS).serialize();
       const charCodes = new Int32Array(bytes.buffer, HEADER_BYTES, 2);
       [charCodes[0], charCodes[1]] = [charCodes[1], charCodes[0]];
-      expect(() => Gaddag.deserialize(bytes)).toThrow('Invalid Gaddag data');
+      expect(() => Gaddag.deserialize(bytes)).toThrow('not an ascending UTF-16 code unit');
     });
 
     it('rejects data with trailing bytes', () => {
       const bytes = Gaddag.fromArray(WORDS).serialize();
       const padded = new Uint8Array(bytes.length + 4);
       padded.set(bytes);
-      expect(() => Gaddag.deserialize(padded)).toThrow('Invalid Gaddag data');
+      expect(() => Gaddag.deserialize(padded)).toThrow('bytes, got');
     });
 
     it('rejects data with more letters than the alphabet supports', () => {
       const bytes = Gaddag.fromArray(WORDS).serialize();
       new Int32Array(bytes.buffer, 0, 4)[1] = MAX_LETTERS + 1;
-      expect(() => Gaddag.deserialize(bytes)).toThrow('Invalid Gaddag data');
+      expect(() => Gaddag.deserialize(bytes)).toThrow('letter count 64 outside 0..63');
     });
 
     it('rejects a root ref that does not point at the first arc of a state', () => {
@@ -394,7 +394,7 @@ describe('Gaddag', () => {
       const gaddag = Gaddag.fromArray(WORDS);
       const bytes = gaddag.serialize();
       new Int32Array(bytes.buffer, 0, 4)[3] = ((gaddag.rootRef >>> 1) + 1) << 1;
-      expect(() => Gaddag.deserialize(bytes)).toThrow('Invalid Gaddag data');
+      expect(() => Gaddag.deserialize(bytes)).toThrow('middle of a state');
     });
 
     it('accepts every dictionary it serializes', () => {
@@ -417,7 +417,7 @@ describe('Gaddag', () => {
       const bytes = gaddag.serialize();
       // Clearing the flag on the final arc would let an arc scan run past the end.
       bytes[bytes.length - 1] &= LETTER_MASK;
-      expect(() => Gaddag.deserialize(bytes)).toThrow('Invalid Gaddag data');
+      expect(() => Gaddag.deserialize(bytes)).toThrow('final arc does not terminate');
     });
 
     it('terminates on corrupted arcs instead of scanning forever', () => {

@@ -55,8 +55,8 @@ export class Gaddag {
    * Zero-copy: when `bytes` is 4-byte aligned, the returned Gaddag reads from the
    * given buffer directly — do not mutate it afterwards.
    *
-   * Throws when the magic number, byte length, alphabet, root ref, or final
-   * arc is malformed. The arcs themselves are trusted — garbage in,
+   * Throws an `Error` naming the failed check when the magic number, byte
+   * length, alphabet, root ref, or final arc is malformed. The arcs themselves are trusted — garbage in,
    * garbage out: on bytes not produced by {@link Gaddag.serialize}, this class's
    * lookups terminate but may answer incorrectly, and a traversal you write on
    * top can loop forever on a cycle or overflow the stack on a deep chain.
@@ -70,76 +70,42 @@ export class Gaddag {
     const aligned = bytes.byteOffset % 4 === 0 ? bytes : new Uint8Array(bytes);
 
     if (aligned.byteLength < HEADER_BYTES) {
-      throw new Error('Invalid Gaddag data');
+      throw invalidData(`truncated header, ${aligned.byteLength} bytes`);
     }
 
     const header = new Int32Array(aligned.buffer, aligned.byteOffset, 4);
     const letterCount = header[1];
     const arcCount = header[2];
     const rootRef = header[3];
+
+    if (header[0] !== MAGIC) {
+      throw invalidData('unexpected magic number');
+    }
+
+    if (letterCount < 0 || letterCount > MAX_LETTERS) {
+      throw invalidData(`letter count ${letterCount} outside 0..${MAX_LETTERS}`);
+    }
+
+    if (arcCount < 1) {
+      throw invalidData(`arc count ${arcCount} below 1`);
+    }
+
     const expectedByteLength = HEADER_BYTES + 4 * (letterCount + arcCount) + arcCount;
 
-    /**
-     * The root is never a word end — empty words are skipped — so a set
-     * word-end bit on the root ref means corruption.
-     */
-    if (
-      header[0] !== MAGIC ||
-      letterCount < 0 ||
-      letterCount > MAX_LETTERS ||
-      arcCount < 1 ||
-      rootRef < 0 ||
-      (rootRef & 1) === 1 ||
-      rootRef >>> 1 >= arcCount ||
-      aligned.byteLength !== expectedByteLength
-    ) {
-      throw new Error('Invalid Gaddag data');
+    if (aligned.byteLength !== expectedByteLength) {
+      throw invalidData(`expected ${expectedByteLength} bytes, got ${aligned.byteLength}`);
     }
 
+    assertRootRef(rootRef, arcCount);
     const charCodes = new Int32Array(aligned.buffer, aligned.byteOffset + HEADER_BYTES, letterCount);
-
-    /**
-     * Char codes must be ascending UTF-16 code units — an unchecked huge value
-     * would make the constructor allocate a code-unit table of that size.
-     */
-    let previousCharCode = -1;
-
-    for (let index = 0; index < letterCount; ++index) {
-      const charCode = charCodes[index];
-
-      if (charCode <= previousCharCode || charCode > MAX_CHAR_CODE) {
-        throw new Error('Invalid Gaddag data');
-      }
-
-      previousCharCode = charCode;
-    }
-
+    assertAlphabet(charCodes);
     const arcTargets = new Int32Array(aligned.buffer, aligned.byteOffset + HEADER_BYTES + 4 * letterCount, arcCount);
     const arcLabels = new Uint8Array(
       aligned.buffer,
       aligned.byteOffset + HEADER_BYTES + 4 * (letterCount + arcCount),
       arcCount,
     );
-
-    /**
-     * Every arc scan stops at the last arc of its state, so a terminated final
-     * arc is what keeps scans from running past the end of the array. An empty
-     * dictionary has no arcs at all — only the unused sentinel at index 0.
-     */
-    if (arcCount > 1 && arcLabels[arcCount - 1] < LAST_ARC_FLAG) {
-      throw new Error('Invalid Gaddag data');
-    }
-
-    /**
-     * A state starts at index 1 or right after a LAST-flagged arc — a root ref
-     * pointing mid-state would silently drop the root arcs in front of it.
-     */
-    const rootArcIndex = rootRef >>> 1;
-
-    if (rootArcIndex > 1 && arcLabels[rootArcIndex - 1] < LAST_ARC_FLAG) {
-      throw new Error('Invalid Gaddag data');
-    }
-
+    assertStateBoundaries(arcLabels, rootRef);
     return new Gaddag({ arcLabels, arcTargets, rootRef }, charCodes);
   }
 
@@ -298,5 +264,64 @@ export class Gaddag {
   /** Number of arcs in the automaton — the backing arrays additionally hold an unused sentinel at index 0. */
   public get arcsCount(): number {
     return this.arcTargets.length - 1;
+  }
+}
+
+function invalidData(reason: string): Error {
+  return new Error(`Invalid Gaddag data: ${reason}`);
+}
+
+/** The root is never a word end — empty words are skipped — so a set word-end bit on the root ref means corruption. */
+function assertRootRef(rootRef: number, arcCount: number): void {
+  if (rootRef < 0) {
+    throw invalidData(`negative root ref ${rootRef}`);
+  }
+
+  if ((rootRef & 1) === 1) {
+    throw invalidData('root ref marks a word end');
+  }
+
+  if (rootRef >>> 1 >= arcCount) {
+    throw invalidData(`root ref ${rootRef} points past the ${arcCount} arcs`);
+  }
+}
+
+/**
+ * Char codes must be ascending UTF-16 code units — an unchecked huge value
+ * would make the constructor allocate a code-unit table of that size.
+ */
+function assertAlphabet(charCodes: Int32Array): void {
+  let previousCharCode = -1;
+
+  for (let index = 0; index < charCodes.length; ++index) {
+    const charCode = charCodes[index];
+
+    if (charCode <= previousCharCode || charCode > MAX_CHAR_CODE) {
+      throw invalidData(`char code ${charCode} at ${index} is not an ascending UTF-16 code unit`);
+    }
+
+    previousCharCode = charCode;
+  }
+}
+
+/**
+ * Every arc scan stops at the last arc of its state, so a terminated final
+ * arc is what keeps scans from running past the end of the array. An empty
+ * dictionary has no arcs at all — only the unused sentinel at index 0.
+ *
+ * A state starts at index 1 or right after a LAST-flagged arc — a root ref
+ * pointing mid-state would silently drop the root arcs in front of it.
+ */
+function assertStateBoundaries(arcLabels: Uint8Array, rootRef: number): void {
+  const arcCount = arcLabels.length;
+
+  if (arcCount > 1 && arcLabels[arcCount - 1] < LAST_ARC_FLAG) {
+    throw invalidData('final arc does not terminate its state');
+  }
+
+  const rootArcIndex = rootRef >>> 1;
+
+  if (rootArcIndex > 1 && arcLabels[rootArcIndex - 1] < LAST_ARC_FLAG) {
+    throw invalidData('root ref points into the middle of a state');
   }
 }
