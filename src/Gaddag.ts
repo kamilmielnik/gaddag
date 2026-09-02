@@ -67,11 +67,7 @@ export class Gaddag {
    * you did not serialize yourself.
    */
   public static deserialize(bytes: Uint8Array): Gaddag {
-    /**
-     * An explicit copy (not .slice()) — Buffer.prototype.slice returns a
-     * view that would keep the misaligned byteOffset.
-     */
-    const aligned = bytes.byteOffset % 4 === 0 ? bytes : new Uint8Array(bytes);
+    const aligned = alignTo4Bytes(bytes);
 
     if (aligned.byteLength < HEADER_BYTES) {
       throw invalidData(`truncated header, ${aligned.byteLength} bytes`);
@@ -299,6 +295,11 @@ export class Gaddag {
 
 function invalidData(reason: string): Error {
   return new Error(`Invalid Gaddag data: ${reason}`);
+}
+
+/** Int32Array views need a 4-byte aligned offset; a view that lacks one is copied into a fresh buffer. */
+function alignTo4Bytes(bytes: Uint8Array): Uint8Array {
+  return bytes.byteOffset % 4 === 0 ? bytes : Uint8Array.from(bytes);
 }
 
 /** The root is never a word end — empty words are skipped — so a set word-end bit on the root ref means corruption. */
