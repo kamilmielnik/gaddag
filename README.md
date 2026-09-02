@@ -247,7 +247,11 @@ findWordsWithPrefix(gaddag, 'scra'); // ['scrabble', 'scrap']
 
 ## Performance
 
-Benchmarks are produced by [`bench/index.ts`](https://github.com/kamilmielnik/gaddag/blob/master/bench/index.ts) using [tinybench](https://github.com/tinylibs/tinybench), against these dictionaries. Run `bun run bench` to regenerate the table and charts below.
+Benchmarks are produced by [`bench/index.ts`](https://github.com/kamilmielnik/gaddag/blob/master/bench/index.ts) using [tinybench](https://github.com/tinylibs/tinybench), against these dictionaries. Run `bun run bench` to regenerate the tables and charts below.
+
+<!-- BENCH:context:start -->
+Measured on 2026-09-03 with Bun 1.4.0 on 13th Gen Intel(R) Core(TM) i9-13900K (linux x64).
+<!-- BENCH:context:end -->
 
 <!-- DICTIONARIES:start -->
 | Language | 🇺🇸 en-US | 🇬🇧 en-GB | 🇵🇱 pl-PL |
@@ -263,12 +267,12 @@ Benchmarks are produced by [`bench/index.ts`](https://github.com/kamilmielnik/ga
 
 | ops / sec | 🇺🇸 en-US | 🇬🇧 en-GB | 🇵🇱 pl-PL |
 | --- | ---: | ---: | ---: |
-| `has (hit)` | 8.15M | 6.99M | 4.27M |
-| `has (miss)` | 8.83M | 7.80M | 5.17M |
-| `hasPrefix (hit)` | 19.19M | 17.66M | 17.82M |
-| `hasPrefix (miss)` | 21.38M | 19.02M | 19.65M |
-| `getArc` | 30.67M | 25.39M | 22.86M |
-| `Gaddag.deserialize` | 5.46M | 5.42M | 4.83M |
+| `has (hit)` | 8.50M | 7.47M | 4.38M |
+| `has (miss)` | 8.59M | 7.99M | 5.33M |
+| `hasPrefix (hit)` | 20.23M | 17.54M | 18.15M |
+| `hasPrefix (miss)` | 22.28M | 18.38M | 19.68M |
+| `getArc` | 31.67M | 26.04M | 25.25M |
+| `Gaddag.deserialize` | 5.70M | 5.21M | 4.74M |
 <!-- BENCH:fast:end -->
 
 <!-- BENCH:fromArray:start -->
@@ -276,7 +280,7 @@ Benchmarks are produced by [`bench/index.ts`](https://github.com/kamilmielnik/ga
 
 | ops / sec | 🇺🇸 en-US | 🇬🇧 en-GB | 🇵🇱 pl-PL |
 | --- | ---: | ---: | ---: |
-| `Gaddag.fromArray` | 3.72 | 2.44 | 0.16 |
+| `Gaddag.fromArray` | 3.76 | 2.40 | 0.16 |
 <!-- BENCH:fromArray:end -->
 
 <!-- BENCH:serialize:start -->
@@ -284,5 +288,5 @@ Benchmarks are produced by [`bench/index.ts`](https://github.com/kamilmielnik/ga
 
 | ops / sec | 🇺🇸 en-US | 🇬🇧 en-GB | 🇵🇱 pl-PL |
 | --- | ---: | ---: | ---: |
-| `serialize` | 2.45k | 1.68k | 469.87 |
+| `serialize` | 2.48k | 1.81k | 440.15 |
 <!-- BENCH:serialize:end -->

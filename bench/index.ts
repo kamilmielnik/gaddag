@@ -1,5 +1,6 @@
 import { existsSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { cpus } from 'node:os';
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -19,6 +20,7 @@ const FAST_MARKER = 'BENCH:fast';
 const BUILD_MARKER = 'BENCH:fromArray';
 const SERIALIZE_MARKER = 'BENCH:serialize';
 const DICTIONARIES_MARKER = 'DICTIONARIES';
+const CONTEXT_MARKER = 'BENCH:context';
 
 const FAST_TITLE = 'Fast operations';
 const BUILD_TITLE = 'Gaddag.fromArray';
@@ -95,7 +97,8 @@ async function main(): Promise<void> {
 
   console.log('Updating README.md...');
   const original = await readFile(README_PATH, 'utf-8');
-  let updated = replaceBetween(original, DICTIONARIES_MARKER, formatDictionaryTable(dictionaries));
+  let updated = replaceBetween(original, CONTEXT_MARKER, formatContext());
+  updated = replaceBetween(updated, DICTIONARIES_MARKER, formatDictionaryTable(dictionaries));
   updated = replaceBetween(
     updated,
     FAST_MARKER,
@@ -515,6 +518,18 @@ function formatChartSection(
       `| \`${operation}\` | ${dictionaries.map((dictionary) => formatHertz(resultOf(results, dictionary, operation))).join(' | ')} |`,
   );
   return [image, '', header, ...rows].join('\n');
+}
+
+/** Numbers mean little without the machine and runtime that produced them. */
+function formatContext(): string {
+  const cpu = cpus()[0]?.model.trim() ?? 'unknown CPU';
+  return `Measured on ${formatLocalDate(new Date())} with Bun ${Bun.version} on ${cpu} (${process.platform} ${process.arch}).`;
+}
+
+function formatLocalDate(date: Date): string {
+  const month = `${date.getMonth() + 1}`.padStart(2, '0');
+  const day = `${date.getDate()}`.padStart(2, '0');
+  return `${date.getFullYear()}-${month}-${day}`;
 }
 
 function formatDictionaryTable(dictionaries: Dictionary[]): string {
