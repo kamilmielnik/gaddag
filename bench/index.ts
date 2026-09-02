@@ -323,7 +323,7 @@ function renderChart(
 
   for (const dictionary of dictionaries) {
     for (const operation of operations) {
-      const value = results.get(dictionary.lang)?.get(operation) ?? 0;
+      const value = resultOf(results, dictionary, operation);
 
       if (value > maxValue) {
         maxValue = value;
@@ -363,7 +363,7 @@ function renderChart(
     const groupX = PADDING.left + operationIndex * groupWidth;
 
     dictionaries.forEach((dictionary, dictionaryIndex) => {
-      const value = results.get(dictionary.lang)?.get(operation) ?? 0;
+      const value = resultOf(results, dictionary, operation);
       const barHeight = (value / axisMax) * plotHeight;
       const x = groupX + GROUP_INNER_PADDING + dictionaryIndex * barWidth;
       const y = PADDING.top + plotHeight - barHeight;
@@ -397,6 +397,16 @@ function renderChart(
 
   parts.push('</svg>');
   return parts.join('\n');
+}
+
+function resultOf(results: Map<string, Map<string, number>>, dictionary: Dictionary, operation: string): number {
+  const value = results.get(dictionary.lang)?.get(operation);
+
+  if (value === undefined) {
+    throw new Error(`No "${operation}" result for ${dictionary.name}`);
+  }
+
+  return value;
 }
 
 /** Rounds up to the next 1, 2, 5 or 10 times a power of ten, so gridlines land on readable values. */
