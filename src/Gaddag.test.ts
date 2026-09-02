@@ -355,6 +355,15 @@ describe('Gaddag', () => {
       expect(() => torn.validate()).toThrow('targets the middle of a state');
     });
 
+    it('rejects an arc that leads nowhere', () => {
+      const gaddag = Gaddag.fromArray(WORDS);
+      const dead = corrupt(gaddag, (_, arcTargets) => {
+        arcTargets[1] = 0;
+      });
+
+      expect(() => dead.validate()).toThrow('leads nowhere');
+    });
+
     it('rejects the root ref and alphabet faults that deserialize rejects', () => {
       const gaddag = Gaddag.fromArray(WORDS);
       const oddRoot = new Gaddag({ ...gaddag, rootRef: gaddag.rootRef | 1 }, gaddag.charCodes);

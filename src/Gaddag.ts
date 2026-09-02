@@ -370,9 +370,10 @@ function assertStateBoundaries(arcLabels: Uint8Array, rootRef: number): void {
 
 /**
  * Letters must be in the alphabet and ascend within a state, or `getArc` scans
- * stop at the wrong arc. Every target must point at the start of a state that
- * precedes the state owning the arc — the order the builder appends states in —
- * which rules out cycles and bounds the depth of any traversal.
+ * stop at the wrong arc. Every target must lead somewhere — ref 0 is "no such
+ * state" — and point at the start of a state that precedes the state owning
+ * the arc — the order the builder appends states in — which rules out cycles
+ * and bounds the depth of any traversal.
  */
 function assertArcs(arcLabels: Uint8Array, arcTargets: Int32Array, letterCount: number): void {
   let stateStart = 1;
@@ -388,6 +389,10 @@ function assertArcs(arcLabels: Uint8Array, arcTargets: Int32Array, letterCount: 
 
     if (letter <= previousLetter) {
       throw invalidData(`arc ${index} breaks the letter order of its state`);
+    }
+
+    if (arcTargets[index] === 0) {
+      throw invalidData(`arc ${index} leads nowhere`);
     }
 
     const targetIndex = arcTargets[index] >>> 1;

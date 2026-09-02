@@ -137,7 +137,7 @@ Empty words are skipped; a non-string entry throws a `TypeError`. Duplicated wor
 - `has`, `hasPrefix`, and `getArc` terminate, but may answer incorrectly
 - a traversal you write on top — like [Find all words with a given prefix](#find-all-words-with-a-given-prefix) — can loop forever on a cycle, or overflow the stack on a chain of states deeper than any real word
 
-[`validate`](https://github.com/kamilmielnik/gaddag/blob/master/docs/classes/Gaddag.md#validate) closes that gap in one pass over the arcs — a few milliseconds per million arcs: it proves that every letter is in the alphabet, that the arcs of each state ascend by letter, and that every target points at the start of a state which lies before the state owning the arc, which rules out cycles and bounds the depth. A validated automaton answers consistently and every traversal of it terminates; whether it holds the words you expect is still up to whoever wrote the bytes. Call it once on data you did not serialize yourself, or build from text with `Gaddag.fromArray` instead.
+[`validate`](https://github.com/kamilmielnik/gaddag/blob/master/docs/classes/Gaddag.md#validate) closes that gap in one pass over the arcs — a few milliseconds per million arcs: it proves that every letter is in the alphabet, that the arcs of each state ascend by letter, that every arc leads somewhere, and that every target points at the start of a state which lies before the state owning the arc, which rules out cycles and bounds the depth. A validated automaton answers consistently and every traversal of it terminates; whether it holds the words you expect is still up to whoever wrote the bytes. Call it once on data you did not serialize yourself, or build from text with `Gaddag.fromArray` instead.
 
 ## Examples
 
