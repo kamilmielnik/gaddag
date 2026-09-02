@@ -72,7 +72,7 @@
     "prebuild": "bun run clean",
     "prerelease": "bun run typecheck && bun run test && bun run build",
     "release": "np",
-    "test": "bun test --coverage",
+    "test": "bun test",
     "test:debug": "bun --inspect-brk test",
     "test:watch": "bun test --watch",
     "typecheck": "tsc --project tsconfig.typecheck.json"
