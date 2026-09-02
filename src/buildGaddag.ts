@@ -9,7 +9,7 @@ const CHAR_CODE_COUNT = 0x10000;
  * the kept words and letters. Enforces {@link MAX_LETTERS} and {@link MAX_WORDS},
  * guarding every pipeline built on the scan.
  */
-export const scanWords = (words: string[]): WordListScan => {
+export function scanWords(words: string[]): WordListScan {
   // One flag per code unit — far cheaper than a Set at dictionary scale, and
   // scanning the flags in order yields the sorted alphabet for free.
   const seen = new Uint8Array(CHAR_CODE_COUNT);
@@ -64,13 +64,13 @@ export const scanWords = (words: string[]): WordListScan => {
   }
 
   return { charCodes, itemsCount, letterByCharCode, wordsCount };
-};
+}
 
 /**
  * Flattens a word list into letter indices. Expects the same `words` the scan
  * came from — {@link scanWords} is what validates the entries.
  */
-export const encodeWords = (words: string[], scan: WordListScan): EncodedWords => {
+export function encodeWords(words: string[], scan: WordListScan): EncodedWords {
   const { itemsCount, letterByCharCode, wordsCount } = scan;
   const wordBytes = new Uint8Array(itemsCount);
   const wordOffsets = new Int32Array(wordsCount + 1);
@@ -94,10 +94,10 @@ export const encodeWords = (words: string[], scan: WordListScan): EncodedWords =
 
   wordOffsets[wordsCount] = offset;
   return { wordBytes, wordOffsets };
-};
+}
 
 /** Enumerates every `(word, split)` pair as a packed integer — one per GADDAG sequence. */
-export const generateItems = (wordOffsets: Int32Array): Int32Array => {
+export function generateItems(wordOffsets: Int32Array): Int32Array {
   const wordsCount = wordOffsets.length - 1;
   const items = new Int32Array(wordOffsets[wordsCount]);
   let itemIndex = 0;
@@ -112,14 +112,14 @@ export const generateItems = (wordOffsets: Int32Array): Int32Array => {
   }
 
   return items;
-};
+}
 
 const RADIX = MAX_LETTERS + 2;
 
 const INSERTION_SORT_THRESHOLD = 24;
 
 /** Orders the sequences with an in-place MSD radix sort. */
-export const sortItems = (items: Int32Array, wordBytes: Uint8Array, wordOffsets: Int32Array): void => {
+export function sortItems(items: Int32Array, wordBytes: Uint8Array, wordOffsets: Int32Array): void {
   // Radix character of each item in the range being scattered, so the in-place
   // scatter does not recompute it as items move — 1 byte per item, in place of
   // the 4 bytes per item an auxiliary scatter buffer would cost.
@@ -131,7 +131,7 @@ export const sortItems = (items: Int32Array, wordBytes: Uint8Array, wordOffsets:
   let stack = new Int32Array(3 * 64);
   let stackTop = 0;
 
-  const push = (low: number, high: number, depth: number): void => {
+  function push(low: number, high: number, depth: number): void {
     if (stackTop + 3 > stack.length) {
       const grown = new Int32Array(stack.length * 2);
       grown.set(stack);
@@ -142,7 +142,7 @@ export const sortItems = (items: Int32Array, wordBytes: Uint8Array, wordOffsets:
     stack[stackTop + 1] = high;
     stack[stackTop + 2] = depth;
     stackTop += 3;
-  };
+  }
 
   push(0, items.length, 0);
 
@@ -244,17 +244,17 @@ export const sortItems = (items: Int32Array, wordBytes: Uint8Array, wordOffsets:
       break;
     }
   }
-};
+}
 
 /** Orders a small range by comparing sequences directly, from `depth` onwards. */
-const sortRangeByInsertion = (
+function sortRangeByInsertion(
   items: Int32Array,
   low: number,
   high: number,
   depth: number,
   wordBytes: Uint8Array,
   wordOffsets: Int32Array,
-): void => {
+): void {
   for (let index = low + 1; index < high; ++index) {
     const item = items[index];
     let position = index - 1;
@@ -266,16 +266,16 @@ const sortRangeByInsertion = (
 
     items[position + 1] = item;
   }
-};
+}
 
 /** Compares two sequences character by character, starting at `depth`. */
-const compareItems = (
+function compareItems(
   left: number,
   right: number,
   depth: number,
   wordBytes: Uint8Array,
   wordOffsets: Int32Array,
-): number => {
+): number {
   for (let position = depth; ; ++position) {
     const leftCharacter = charAt(left, position, wordBytes, wordOffsets);
     const rightCharacter = charAt(right, position, wordBytes, wordOffsets);
@@ -288,13 +288,13 @@ const compareItems = (
       return 0;
     }
   }
-};
+}
 
 /**
  * Radix character of sequence `item` at position `depth`:
  * 0 = end of sequence, 1 = separator, letter + 1 otherwise.
  */
-const charAt = (item: number, depth: number, wordBytes: Uint8Array, wordOffsets: Int32Array): number => {
+function charAt(item: number, depth: number, wordBytes: Uint8Array, wordOffsets: Int32Array): number {
   const wordIndex = item >>> 6;
   const split = item & 63;
   const offset = wordOffsets[wordIndex];
@@ -308,7 +308,7 @@ const charAt = (item: number, depth: number, wordBytes: Uint8Array, wordOffsets:
   }
 
   return depth <= wordOffsets[wordIndex + 1] - offset ? wordBytes[offset + depth - 1] + 1 : 0;
-};
+}
 
 /** A GADDAG sequence is at most a maximum-length word behind its separator. */
 const MAX_SEQUENCE_LENGTH = MAX_WORD_LENGTH + 1;
@@ -323,7 +323,7 @@ const MAX_ARCS_PER_STATE = MAX_LETTERS + 1;
  * (Daciuk et al., 2000) and returns the resulting arcs. Throws when the items
  * arrive unsorted — {@link sortItems} is what orders them.
  */
-export const insertItems = (items: Int32Array, wordBytes: Uint8Array, wordOffsets: Int32Array): GaddagArcs => {
+export function insertItems(items: Int32Array, wordBytes: Uint8Array, wordOffsets: Int32Array): GaddagArcs {
   const builder = new Builder();
   // Two buffers alternate: the builder keeps the last sequence for its common-prefix
   // comparison, so the next sequence must be built elsewhere.
@@ -360,7 +360,7 @@ export const insertItems = (items: Int32Array, wordBytes: Uint8Array, wordOffset
   }
 
   return builder.finish();
-};
+}
 
 const INITIAL_CAPACITY = 1 << 16;
 

@@ -3,10 +3,10 @@ import { describe, expect, it } from 'bun:test';
 import { HEADER_BYTES, LAST_ARC_FLAG, LETTER_MASK, MAX_LETTERS, MAX_WORD_LENGTH, SEPARATOR } from './constants.ts';
 import { Gaddag } from './Gaddag.ts';
 
-const arcTargetsOf = (bytes: Uint8Array): Int32Array => {
+function arcTargetsOf(bytes: Uint8Array): Int32Array {
   const [, letterCount, arcCount] = new Int32Array(bytes.buffer, 0, 4);
   return new Int32Array(bytes.buffer, HEADER_BYTES + 4 * letterCount, arcCount);
-};
+}
 
 const WORDS = [
   'a',

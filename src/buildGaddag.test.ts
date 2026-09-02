@@ -7,7 +7,7 @@ import { Gaddag } from './Gaddag.ts';
 const MULBERRY32_INCREMENT = 0x6d2b79f5;
 const UINT32_RANGE = 2 ** 32;
 
-const createSeededRandom = (seed: number): (() => number) => {
+function createSeededRandom(seed: number): () => number {
   let state = seed;
   return (): number => {
     state = (state + MULBERRY32_INCREMENT) | 0;
@@ -15,9 +15,9 @@ const createSeededRandom = (seed: number): (() => number) => {
     value = (value + Math.imul(value ^ (value >>> 7), 61 | value)) ^ value;
     return ((value ^ (value >>> 14)) >>> 0) / UINT32_RANGE;
   };
-};
+}
 
-const createRandomWordGenerator = (seed: number, letters: string, maxLength: number): (() => string) => {
+function createRandomWordGenerator(seed: number, letters: string, maxLength: number): () => string {
   const random = createSeededRandom(seed);
 
   return (): string => {
@@ -30,7 +30,7 @@ const createRandomWordGenerator = (seed: number, letters: string, maxLength: num
 
     return word;
   };
-};
+}
 
 describe('Gaddag.fromArray', () => {
   it('handles duplicated and unsorted input', () => {
@@ -174,7 +174,7 @@ describe('Gaddag.fromArray', () => {
       words.add(randomWord());
     }
 
-    const hasPrefixBruteForce = (prefix: string): boolean => {
+    function hasPrefixBruteForce(prefix: string): boolean {
       for (const word of words) {
         if (word.startsWith(prefix)) {
           return true;
@@ -182,7 +182,7 @@ describe('Gaddag.fromArray', () => {
       }
 
       return false;
-    };
+    }
 
     const gaddag = Gaddag.fromArray([...words]);
 
@@ -270,7 +270,7 @@ describe('sortItems', () => {
     const { wordBytes, wordOffsets } = encodeWords(words, scanWords(words));
     const items = generateItems(wordOffsets);
 
-    const sequenceOf = (item: number): number[] => {
+    function sequenceOf(item: number): number[] {
       const wordIndex = item >>> 6;
       const split = item & 63;
       const offset = wordOffsets[wordIndex];
@@ -290,9 +290,9 @@ describe('sortItems', () => {
       }
 
       return sequence;
-    };
+    }
 
-    const compareSequences = (left: number[], right: number[]): number => {
+    function compareSequences(left: number[], right: number[]): number {
       for (let position = 0; position < Math.min(left.length, right.length); ++position) {
         if (left[position] !== right[position]) {
           return left[position] - right[position];
@@ -300,7 +300,7 @@ describe('sortItems', () => {
       }
 
       return left.length - right.length;
-    };
+    }
 
     sortItems(items, wordBytes, wordOffsets);
 

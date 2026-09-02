@@ -193,7 +193,7 @@ A GADDAG stores `reverse(prefix) + ◇ + suffix` paths, so all words starting wi
 ```TypeScript
 import { Gaddag, LAST_ARC_FLAG, LETTER_MASK, SEPARATOR } from '@kamilmielnik/gaddag';
 
-const findWordsWithPrefix = (gaddag: Gaddag, prefix: string): string[] => {
+function findWordsWithPrefix(gaddag: Gaddag, prefix: string): string[] {
   if (prefix.length === 0 || !gaddag.hasPrefix(prefix)) {
     return [];
   }
@@ -212,9 +212,9 @@ const findWordsWithPrefix = (gaddag: Gaddag, prefix: string): string[] => {
 
   collectWords(gaddag, gaddag.getArc(ref, SEPARATOR), prefix, words);
   return words;
-};
+}
 
-const collectWords = (gaddag: Gaddag, ref: number, word: string, words: string[]): void => {
+function collectWords(gaddag: Gaddag, ref: number, word: string, words: string[]): void {
   let index = ref >>> 1;
 
   if (index === 0) {
@@ -239,7 +239,7 @@ const collectWords = (gaddag: Gaddag, ref: number, word: string, words: string[]
 
     ++index;
   }
-};
+}
 
 const gaddag = Gaddag.fromArray(['scrabble', 'scrap', 'solver']);
 findWordsWithPrefix(gaddag, 'scra'); // ['scrabble', 'scrap']
