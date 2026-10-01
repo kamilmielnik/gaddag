@@ -452,9 +452,13 @@ function renderChart(
   return parts.join('\n');
 }
 
-/** Drops the `Gaddag.` prefix and moves the parenthesized qualifier, as in `has (hit)`, onto its own line. */
+/** Moves the parenthesized qualifier, as in `has (hit)`, onto its own line. */
 function splitLabel(operation: string): string[] {
-  return operation.replace(/^Gaddag\./, '').split(/ (?=\()/);
+  return shortName(operation).split(/ (?=\()/);
+}
+
+function shortName(operation: string): string {
+  return operation.replace(/^Gaddag\./, '');
 }
 
 function resultOf(results: Map<string, Map<string, number>>, dictionary: Dictionary, operation: string): number {
@@ -553,7 +557,7 @@ function formatChartSection(
     `| --- | ${dictionaries.map(() => '---:').join(' | ')} |`;
   const rows = operations.map(
     (operation) =>
-      `| \`${operation}\` | ${dictionaries.map((dictionary) => formatHertz(resultOf(results, dictionary, operation))).join(' | ')} |`,
+      `| \`${shortName(operation)}\` | ${dictionaries.map((dictionary) => formatHertz(resultOf(results, dictionary, operation))).join(' | ')} |`,
   );
   return [image, '', header, ...rows].join('\n');
 }

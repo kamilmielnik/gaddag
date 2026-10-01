@@ -295,7 +295,7 @@ Measured on 2026-09-03 with Bun 1.4.0 on 13th Gen Intel(R) Core(TM) i9-13900K (l
 | `hasPrefix (hit)` | 19.13M | 17.81M | 16.93M |
 | `hasPrefix (miss)` | 21.89M | 18.94M | 19.02M |
 | `getArc` | 32.11M | 27.46M | 24.15M |
-| `Gaddag.deserialize (aligned)` | 5.45M | 5.52M | 4.74M |
+| `deserialize (aligned)` | 5.45M | 5.52M | 4.74M |
 <!-- BENCH:fast:end -->
 
 <!-- BENCH:fromArray:start -->
@@ -303,7 +303,7 @@ Measured on 2026-09-03 with Bun 1.4.0 on 13th Gen Intel(R) Core(TM) i9-13900K (l
 
 | ops / sec | 🇺🇸 en-US | 🇬🇧 en-GB | 🇵🇱 pl-PL |
 | --- | ---: | ---: | ---: |
-| `Gaddag.fromArray` | 3.69 | 2.39 | 0.17 |
+| `fromArray` | 3.69 | 2.39 | 0.17 |
 <!-- BENCH:fromArray:end -->
 
 <!-- BENCH:passes:start -->
@@ -312,6 +312,6 @@ Measured on 2026-09-03 with Bun 1.4.0 on 13th Gen Intel(R) Core(TM) i9-13900K (l
 | ops / sec | 🇺🇸 en-US | 🇬🇧 en-GB | 🇵🇱 pl-PL |
 | --- | ---: | ---: | ---: |
 | `serialize` | 2.25k | 1.64k | 446.15 |
-| `Gaddag.deserialize (unaligned)` | 9.10k | 6.27k | 1.41k |
+| `deserialize (unaligned)` | 9.10k | 6.27k | 1.41k |
 | `validate` | 350.82 | 250.43 | 66.39 |
 <!-- BENCH:passes:end -->
