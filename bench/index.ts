@@ -341,9 +341,13 @@ const PALETTE = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#14b8a6
 
 const WIDTH = 920;
 
-const HEIGHT = 400;
+const PLOT_HEIGHT = 326;
 
-const PADDING = { top: 24, right: 200, bottom: 50, left: 84 };
+const PADDING = { top: 24, right: 200, bottom: 24, left: 84 };
+
+const LABEL_OFFSET = 26;
+
+const LABEL_LINE_HEIGHT = 16;
 
 const GROUP_INNER_PADDING = 12;
 
@@ -358,7 +362,11 @@ function renderChart(
   results: Map<string, Map<string, number>>,
 ): string {
   const plotWidth = WIDTH - PADDING.left - PADDING.right;
-  const plotHeight = HEIGHT - PADDING.top - PADDING.bottom;
+  const groupWidth = plotWidth / operations.length;
+  const labels = operations.map(splitLabel);
+  const labelLineCount = Math.max(...labels.map((lines) => lines.length));
+  const labelY = PADDING.top + PLOT_HEIGHT + LABEL_OFFSET;
+  const height = labelY + (labelLineCount - 1) * LABEL_LINE_HEIGHT + PADDING.bottom;
 
   let maxValue = 0;
 
@@ -373,20 +381,19 @@ function renderChart(
   }
 
   const axisMax = niceCeil(maxValue);
-  const groupWidth = plotWidth / operations.length;
   const barWidth = (groupWidth - GROUP_INNER_PADDING * 2) / dictionaries.length;
   function toPixels(value: number): number {
-    return PADDING.top + plotHeight - (value / axisMax) * plotHeight;
+    return PADDING.top + PLOT_HEIGHT - (value / axisMax) * PLOT_HEIGHT;
   }
 
   // One id per chart, so inlining several charts into one document keeps every label unique.
   const titleId = `chart-title-${slugify(title)}`;
   const parts: string[] = [];
   parts.push(
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${WIDTH} ${HEIGHT}" role="img" aria-labelledby="${titleId}" font-family="-apple-system, Segoe UI, Roboto, sans-serif" font-size="13">`,
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${WIDTH} ${height}" role="img" aria-labelledby="${titleId}" font-family="-apple-system, Segoe UI, Roboto, sans-serif" font-size="13">`,
   );
   parts.push(`<title id="${titleId}">${escapeXml(title)} — operations per second by dictionary</title>`);
-  parts.push(`<rect width="${WIDTH}" height="${HEIGHT}" fill="white"/>`);
+  parts.push(`<rect width="${WIDTH}" height="${height}" fill="white"/>`);
 
   for (let gridline = 0; gridline <= GRIDLINE_COUNT; ++gridline) {
     const value = (axisMax * gridline) / GRIDLINE_COUNT;
@@ -400,7 +407,7 @@ function renderChart(
   }
 
   parts.push(
-    `<text x="22" y="${PADDING.top + plotHeight / 2}" text-anchor="middle" fill="#555" transform="rotate(-90 22 ${PADDING.top + plotHeight / 2})">ops / sec</text>`,
+    `<text x="22" y="${PADDING.top + PLOT_HEIGHT / 2}" text-anchor="middle" fill="#555" transform="rotate(-90 22 ${PADDING.top + PLOT_HEIGHT / 2})">ops / sec</text>`,
   );
 
   operations.forEach((operation, operationIndex) => {
@@ -408,9 +415,9 @@ function renderChart(
 
     dictionaries.forEach((dictionary, dictionaryIndex) => {
       const value = resultOf(results, dictionary, operation);
-      const barHeight = (value / axisMax) * plotHeight;
+      const barHeight = (value / axisMax) * PLOT_HEIGHT;
       const x = groupX + GROUP_INNER_PADDING + dictionaryIndex * barWidth;
-      const y = PADDING.top + plotHeight - barHeight;
+      const y = PADDING.top + PLOT_HEIGHT - barHeight;
       const color = PALETTE[dictionaryIndex % PALETTE.length];
       parts.push(
         `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${(barWidth - 2).toFixed(1)}" height="${barHeight.toFixed(1)}" fill="${color}"><title>${escapeXml(dictionary.flag)} ${escapeXml(dictionary.lang)} · ${escapeXml(operation)}: ${formatHertz(value)} ops/sec</title></rect>`,
@@ -418,9 +425,11 @@ function renderChart(
     });
 
     const centerX = groupX + groupWidth / 2;
-    parts.push(
-      `<text x="${centerX}" y="${PADDING.top + plotHeight + 26}" text-anchor="middle" fill="#111" font-weight="600" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">${escapeXml(operation)}</text>`,
-    );
+    labels[operationIndex].forEach((line, lineIndex) => {
+      parts.push(
+        `<text x="${centerX}" y="${labelY + lineIndex * LABEL_LINE_HEIGHT}" text-anchor="middle" fill="#111" font-weight="600" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">${escapeXml(line)}</text>`,
+      );
+    });
   });
 
   const legendX = WIDTH - PADDING.right + 24;
@@ -441,6 +450,11 @@ function renderChart(
 
   parts.push('</svg>');
   return parts.join('\n');
+}
+
+/** Drops the `Gaddag.` prefix and moves the parenthesized qualifier, as in `has (hit)`, onto its own line. */
+function splitLabel(operation: string): string[] {
+  return operation.replace(/^Gaddag\./, '').split(/ (?=\()/);
 }
 
 function resultOf(results: Map<string, Map<string, number>>, dictionary: Dictionary, operation: string): number {
